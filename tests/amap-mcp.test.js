@@ -5,7 +5,7 @@ import {
   buildCandidateSearchPlans,
   collectRestaurantCandidates,
   fetchAmapPhotoDetails,
-  mergeRestaurantPhotos,
+  selectRestaurantPhotos,
 } from "../lib/amap-mcp.js";
 
 const request = {
@@ -88,26 +88,29 @@ test("搜索计划使用餐次对应关键词并限制最大范围", () => {
   assert.ok(plans.every((plan) => plan.radius <= 5000));
 });
 
-test("Web详情照片会与MCP首图合并并去重", () => {
-  const result = mergeRestaurantPhotos(
-    [{ id: "p1", name: "测试餐厅", photos: ["https://img.test/1.jpg"] }],
+test("Web详情照片是主来源，缺失时使用MCP首图", () => {
+  const result = selectRestaurantPhotos(
+    [
+      { id: "p1", name: "有详情图", photos: ["https://mcp.test/cover.jpg"] },
+      { id: "p2", name: "无详情图", photos: ["https://mcp.test/fallback.jpg"] },
+    ],
     [
       {
         id: "p1",
         photos: [
-          { url: "https://img.test/1.jpg" },
-          { url: "https://img.test/2.jpg" },
-          { url: "https://img.test/3.jpg" },
+          { url: "https://web.test/1.jpg" },
+          { url: "http://store.is.autonavi.com/showpic/2" },
+          { url: "http://store.is.autonavi.com/showpic/2" },
         ],
       },
     ]
   );
 
   assert.deepEqual(result[0].photos, [
-    "https://img.test/1.jpg",
-    "https://img.test/2.jpg",
-    "https://img.test/3.jpg",
+    "https://web.test/1.jpg",
+    "https://store.is.autonavi.com/showpic/2",
   ]);
+  assert.deepEqual(result[1].photos, ["https://mcp.test/fallback.jpg"]);
 });
 
 test("照片详情接口按POI ID批量查询", async () => {
