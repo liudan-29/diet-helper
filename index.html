@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1f3229" />
+    <title>吃点好的 · 饮食小助手</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@600;700;900&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#top" aria-label="吃点好的首页">
+          <span class="brand-mark">食</span>
+          <span>吃点好的</span>
+        </a>
+        <button class="location-button" id="locationButton" type="button">
+          <span class="location-dot"></span><span id="locationText">定位到附近</span>
+        </button>
+      </header>
+
+      <section class="hero" id="top">
+        <p class="eyebrow">今天这一餐，别将就。</p>
+        <h1>你现在<br /><em>想吃点什么？</em></h1>
+        <p class="hero-note">把选择交给偏好和附近真实的餐厅，而不是随便凑合。</p>
+      </section>
+
+      <section class="picker" aria-label="用餐偏好">
+        <div class="picker-row">
+          <span class="picker-label">这一餐</span>
+          <div class="chip-group" data-group="meal">
+            <button class="chip" data-value="早餐" type="button">早餐</button>
+            <button class="chip active" data-value="午餐" type="button">午餐</button>
+            <button class="chip" data-value="晚餐" type="button">晚餐</button>
+            <button class="chip" data-value="夜宵" type="button">夜宵</button>
+          </div>
+        </div>
+        <div class="picker-row">
+          <span class="picker-label">什么场合</span>
+          <div class="chip-group" data-group="scene">
+            <button class="chip active" data-value="日常" type="button">日常</button>
+            <button class="chip" data-value="请客" type="button">请客</button>
+            <button class="chip" data-value="一个人" type="button">一个人</button>
+            <button class="chip" data-value="想吃清淡" type="button">想吃清淡</button>
+          </div>
+        </div>
+        <div class="picker-row budget-row">
+          <span class="picker-label">人均预算</span>
+          <input id="budgetRange" type="range" min="30" max="220" value="80" step="10" aria-label="人均预算" />
+          <output id="budgetOutput" for="budgetRange">¥80</output>
+        </div>
+        <button class="recommend-button" id="recommendButton" type="button">给我挑一家 <span>↗</span></button>
+      </section>
+
+      <section class="result-section" id="resultSection" aria-live="polite">
+        <div class="result-heading">
+          <div>
+            <p class="eyebrow">今日推荐</p>
+            <h2 id="resultTitle">附近适合午餐的店</h2>
+          </div>
+          <span class="result-count" id="resultCount">01 / 04</span>
+        </div>
+
+        <article class="restaurant-card" id="restaurantCard">
+          <div class="card-visual" id="cardVisual">
+            <span class="dish-stamp" id="dishStamp">川</span>
+            <p class="card-kicker" id="cardKicker">锅气很足</p>
+            <div class="visual-lines"><i></i><i></i><i></i></div>
+          </div>
+          <div class="card-body">
+            <div class="card-title-line">
+              <div>
+                <h3 id="restaurantName">胡记锅贴</h3>
+                <p id="restaurantMeta">锅贴 · 420m · 人均 ¥36</p>
+              </div>
+              <span class="rating" id="restaurantRating">4.8</span>
+            </div>
+            <p class="reason" id="restaurantReason">离你近，正在营业；午餐吃得扎实，又不会花太多时间。</p>
+            <div class="tag-list" id="tagList"></div>
+            <div class="card-actions">
+              <button class="secondary-button" id="nextButton" type="button">换一家</button>
+              <button class="primary-button" id="navigateButton" type="button">去这里 <span>→</span></button>
+            </div>
+          </div>
+        </article>
+        <p class="data-note" id="dataNote">现在是演示数据。接入高德 MCP 后，这里会显示附近真实餐厅。</p>
+      </section>
+
+      <nav class="bottom-nav" aria-label="主导航">
+        <button class="nav-item active" type="button"><span>⌁</span>去哪吃</button>
+        <button class="nav-item" type="button"><span>◎</span>自己做</button>
+        <button class="nav-item" type="button"><span>＋</span>记一笔</button>
+        <button class="nav-item" type="button"><span>◌</span>我的</button>
+      </nav>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
