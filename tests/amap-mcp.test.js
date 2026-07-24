@@ -4,6 +4,8 @@ import assert from "node:assert/strict";
 import {
   buildCandidateSearchPlans,
   collectRestaurantCandidates,
+  fetchAmapPhotoDetails,
+  mergeRestaurantPhotos,
 } from "../lib/amap-mcp.js";
 
 const request = {
@@ -84,6 +86,50 @@ test("搜索计划使用餐次对应关键词并限制最大范围", () => {
   assert.equal(plans.length, 3);
   assert.match(plans[0].keywords, /早餐/);
   assert.ok(plans.every((plan) => plan.radius <= 5000));
+});
+
+test("Web详情照片会与MCP首图合并并去重", () => {
+  const result = mergeRestaurantPhotos(
+    [{ id: "p1", name: "测试餐厅", photos: ["https://img.test/1.jpg"] }],
+    [
+      {
+        id: "p1",
+        photos: [
+          { url: "https://img.test/1.jpg" },
+          { url: "https://img.test/2.jpg" },
+          { url: "https://img.test/3.jpg" },
+        ],
+      },
+    ]
+  );
+
+  assert.deepEqual(result[0].photos, [
+    "https://img.test/1.jpg",
+    "https://img.test/2.jpg",
+    "https://img.test/3.jpg",
+  ]);
+});
+
+test("照片详情接口按POI ID批量查询", async () => {
+  let requestedUrl;
+  const result = await fetchAmapPhotoDetails(
+    ["p1", "p2"],
+    "test-key",
+    async (url) => {
+      requestedUrl = url;
+      return {
+        ok: true,
+        json: async () => ({
+          status: "1",
+          pois: [{ id: "p1", photos: [{ url: "https://img.test/1.jpg" }] }],
+        }),
+      };
+    }
+  );
+
+  assert.equal(requestedUrl.searchParams.get("id"), "p1|p2");
+  assert.equal(requestedUrl.searchParams.get("show_fields"), "photos");
+  assert.equal(result.length, 1);
 });
 
 function poi(id, longitudeDelta, overrides = {}) {

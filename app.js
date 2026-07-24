@@ -23,6 +23,8 @@ const state = {
   loading: false,
   dataMode: "mock",
   search: null,
+  photoIndexByRestaurant: {},
+  failedPhotos: new Set(),
 };
 
 const elements = {
@@ -48,6 +50,9 @@ const elements = {
   restaurantCard: document.querySelector("#restaurantCard"),
   cardVisual: document.querySelector("#cardVisual"),
   restaurantPhoto: document.querySelector("#restaurantPhoto"),
+  photoPreviousButton: document.querySelector("#photoPreviousButton"),
+  photoNextButton: document.querySelector("#photoNextButton"),
+  photoPagination: document.querySelector("#photoPagination"),
   restaurantName: document.querySelector("#restaurantName"),
   restaurantMeta: document.querySelector("#restaurantMeta"),
   restaurantRating: document.querySelector("#restaurantRating"),
@@ -114,11 +119,18 @@ function renderRestaurant() {
 }
 
 function renderRestaurantPhoto(item) {
-  const photoUrl = safePhotoUrl(item.photos?.[0]);
+  const photoUrls = restaurantPhotoUrls(item);
+  const currentIndex = Math.min(
+    state.photoIndexByRestaurant[item.id] || 0,
+    Math.max(0, photoUrls.length - 1)
+  );
+  const photoUrl = photoUrls[currentIndex] || "";
+  state.photoIndexByRestaurant[item.id] = currentIndex;
   elements.cardVisual.classList.remove("has-photo");
   elements.restaurantPhoto.removeAttribute("src");
   elements.restaurantPhoto.alt = "";
   elements.restaurantPhoto.dataset.photoUrl = photoUrl;
+  renderPhotoControls(item, photoUrls, currentIndex);
 
   if (!photoUrl) return;
 
@@ -128,13 +140,89 @@ function renderRestaurantPhoto(item) {
   };
   elements.restaurantPhoto.onerror = () => {
     if (elements.restaurantPhoto.dataset.photoUrl !== photoUrl) return;
-    elements.cardVisual.classList.remove("has-photo");
-    elements.restaurantPhoto.removeAttribute("src");
-    elements.restaurantPhoto.alt = "";
+    state.failedPhotos.add(photoUrl);
+    renderRestaurantPhoto(item);
   };
-  elements.restaurantPhoto.alt = `${item.name}实景照片`;
+  elements.restaurantPhoto.alt = `${item.name}实景照片，第${currentIndex + 1}张，共${photoUrls.length}张`;
   elements.restaurantPhoto.src = photoUrl;
 }
+
+function restaurantPhotoUrls(item) {
+  return [...new Set((item.photos || []).map(safePhotoUrl).filter(Boolean))].filter(
+    (url) => !state.failedPhotos.has(url)
+  );
+}
+
+function renderPhotoControls(item, photoUrls, currentIndex) {
+  const hasMultiplePhotos = photoUrls.length > 1;
+  elements.photoPreviousButton.hidden = !hasMultiplePhotos;
+  elements.photoNextButton.hidden = !hasMultiplePhotos;
+  elements.photoPagination.hidden = !hasMultiplePhotos;
+  elements.photoPagination.innerHTML = hasMultiplePhotos
+    ? photoUrls
+        .map(
+          (_, index) =>
+            `<button class="photo-dot${index === currentIndex ? " active" : ""}" type="button" data-photo-index="${index}" aria-label="查看第${index + 1}张照片" aria-current="${index === currentIndex ? "true" : "false"}"></button>`
+        )
+        .join("")
+    : "";
+  elements.photoPagination.dataset.restaurantId = item.id;
+}
+
+function changeRestaurantPhoto(step) {
+  const item = state.restaurants[state.index];
+  if (!item) return;
+  const photoUrls = restaurantPhotoUrls(item);
+  if (photoUrls.length < 2) return;
+  const currentIndex = state.photoIndexByRestaurant[item.id] || 0;
+  state.photoIndexByRestaurant[item.id] =
+    (currentIndex + step + photoUrls.length) % photoUrls.length;
+  renderRestaurantPhoto(item);
+}
+
+elements.photoPreviousButton.addEventListener("click", (event) => {
+  event.stopPropagation();
+  changeRestaurantPhoto(-1);
+});
+elements.photoNextButton.addEventListener("click", (event) => {
+  event.stopPropagation();
+  changeRestaurantPhoto(1);
+});
+elements.photoPagination.addEventListener("click", (event) => {
+  const dot = event.target.closest("[data-photo-index]");
+  const item = state.restaurants[state.index];
+  if (!dot || !item) return;
+  state.photoIndexByRestaurant[item.id] = Number(dot.dataset.photoIndex);
+  renderRestaurantPhoto(item);
+});
+
+let touchStart = null;
+elements.cardVisual.addEventListener(
+  "touchstart",
+  (event) => {
+    const touch = event.changedTouches[0];
+    touchStart = { x: touch.clientX, y: touch.clientY };
+  },
+  { passive: true }
+);
+elements.cardVisual.addEventListener(
+  "touchend",
+  (event) => {
+    if (!touchStart) return;
+    const touch = event.changedTouches[0];
+    const horizontalDistance = touch.clientX - touchStart.x;
+    const verticalDistance = touch.clientY - touchStart.y;
+    touchStart = null;
+    if (
+      Math.abs(horizontalDistance) < 40 ||
+      Math.abs(horizontalDistance) <= Math.abs(verticalDistance)
+    ) {
+      return;
+    }
+    changeRestaurantPhoto(horizontalDistance < 0 ? 1 : -1);
+  },
+  { passive: true }
+);
 
 function safePhotoUrl(value) {
   try {

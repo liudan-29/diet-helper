@@ -15,7 +15,8 @@
 - Node.js最低版本为20，使用ES Module。
 - `server.js`负责静态资源和API；高德MCP客户端位于`lib/amap-mcp.js`；筛选排序位于`lib/recommendations.js`。
 - 前端不得持有或输出高德Key。
-- 高德详情中的`photo`或`photos`必须标准化为`photos`数组；前端优先展示第一张真实照片，只有无图或加载失败时才使用渐变占位图。
+- 高德MCP详情中的`photo`或`photos`必须标准化为`photos`数组；MCP通常只返回首图，推荐完成后用高德Web服务v5的POI ID详情接口批量补齐`photos`，接口失败时保留MCP首图。
+- 同店多图使用左右按钮、分页条和手机横向滑动切换；只有1张照片时必须隐藏轮播控件，不能展示不可操作的假分页条。无图或加载失败时使用渐变占位图。
 - 未配置`AMAP_MCP_KEY`时使用演示数据；配置后自动切换到高德MCP。
 - 高德MCP的`maps_around_search`可能只返回基础POI且没有坐标；标准化前必须用`maps_search_detail`补齐详情，不能直接把这些POI丢弃。
 - 首轮筛选不足5家时，用不同关键词补查2公里和3公里范围；合并后按高德POI ID去重，最多返回8家，不能放宽营业、餐次和预算硬条件凑数。
