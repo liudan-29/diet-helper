@@ -19,6 +19,7 @@
 - 高德MCP的`maps_around_search`可能只返回基础POI且没有坐标；标准化前必须用`maps_search_detail`补齐详情，不能直接把这些POI丢弃。
 - 真实接入验证使用`npm run check:amap`，验证脚本不得输出Key。
 - 运行测试使用`npm test`，启动使用`npm start`。
+- 向用户提供`localhost`地址前，必须先确认对应端口正在监听且首页返回200；本地服务退出后，该地址会立即失效。
 
 ## 产品范围护栏
 
