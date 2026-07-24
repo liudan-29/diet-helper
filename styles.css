@@ -57,12 +57,11 @@ h1 em { color: var(--moss); font-style: normal; }
 .number-field { display: flex; align-items: center; gap: 9px; }
 .number-field input { width: 82px; }
 .number-field span { color: var(--muted); font-family: "Noto Serif SC", serif; font-size: 12px; }
+.budget-field input { width: 116px; font-family: "DM Mono", monospace; font-size: 14px; }
 .field-help { margin: 6px 2px 0; color: var(--muted); font-family: "Noto Serif SC", serif; font-size: 10px; line-height: 1.55; }
 .requirement-row { margin-bottom: 16px; }
 .budget-row { align-items: center; margin-bottom: 16px; }
 .budget-row .picker-label { padding-top: 0; }
-input[type="range"] { width: 100%; accent-color: var(--moss); }
-output { min-width: 38px; padding-top: 1px; color: var(--orange); font-size: 12px; }
 .recommend-button { width: 100%; border: 0; border-radius: 12px; padding: 15px 17px; background: var(--lime); color: var(--deep); text-align: left; font-family: "Noto Serif SC", serif; font-size: 16px; font-weight: 900; }
 .recommend-button span { float: right; font-family: "DM Mono", monospace; }
 .recommend-button:disabled { cursor: wait; filter: grayscale(.35); opacity: .62; }

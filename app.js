@@ -34,8 +34,7 @@ const elements = {
   locationPanel: document.querySelector("#locationPanel"),
   manualLocationInput: document.querySelector("#manualLocationInput"),
   manualLocationButton: document.querySelector("#manualLocationButton"),
-  budgetRange: document.querySelector("#budgetRange"),
-  budgetOutput: document.querySelector("#budgetOutput"),
+  budgetInput: document.querySelector("#budgetInput"),
   customOccasionField: document.querySelector("#customOccasionField"),
   customOccasionInput: document.querySelector("#customOccasionInput"),
   partySizeInput: document.querySelector("#partySizeInput"),
@@ -369,12 +368,6 @@ elements.customRequirementInput.addEventListener("input", (event) => {
   state.customRequirement = event.target.value;
 });
 
-elements.budgetRange.addEventListener("input", (event) => {
-  state.budget = Number(event.target.value);
-  elements.budgetOutput.value = `¥${state.budget}`;
-  elements.budgetOutput.textContent = `¥${state.budget}`;
-});
-
 elements.locationButton.addEventListener("click", locateUser);
 elements.manualLocationButton.addEventListener("click", useManualLocation);
 
@@ -434,6 +427,17 @@ async function requestRecommendations() {
     showManualLocation("请先定位或输入地点。");
     return;
   }
+  const budget = Number(elements.budgetInput.value);
+  if (
+    elements.budgetInput.value.trim() === "" ||
+    !Number.isFinite(budget) ||
+    budget < 0 ||
+    budget > 10000
+  ) {
+    elements.formMessage.textContent = "人均预算请填写0至10000之间的金额。";
+    elements.budgetInput.focus();
+    return;
+  }
   const partySize = Number(elements.partySizeInput.value);
   if (!Number.isInteger(partySize) || partySize < 1 || partySize > 50) {
     elements.formMessage.textContent = "同行人数请填写1至50之间的整数。";
@@ -446,6 +450,7 @@ async function requestRecommendations() {
     elements.customOccasionInput.focus();
     return;
   }
+  state.budget = budget;
   state.partySize = partySize;
   state.customOccasion = customOccasion;
   state.customRequirement = elements.customRequirementInput.value.trim();

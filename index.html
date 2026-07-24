@@ -98,9 +98,11 @@
           </div>
         </div>
         <div class="picker-row budget-row">
-          <span class="picker-label">人均预算</span>
-          <input id="budgetRange" type="range" min="0" max="220" value="80" step="10" aria-label="人均预算" />
-          <output id="budgetOutput" for="budgetRange">¥80</output>
+          <label class="picker-label" for="budgetInput">人均预算</label>
+          <label class="number-field budget-field">
+            <input id="budgetInput" type="number" min="0" max="10000" value="80" step="1" inputmode="decimal" aria-label="人均预算" />
+            <span>元/人</span>
+          </label>
         </div>
         <button class="recommend-button" id="recommendButton" type="button">给我挑一家 <span>↗</span></button>
         <p class="form-message" id="formMessage" role="status"></p>
