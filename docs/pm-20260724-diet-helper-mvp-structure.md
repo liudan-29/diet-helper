@@ -279,8 +279,227 @@ erDiagram
 
 ## 第四步：页面结构
 
-待确认第三步后补充。
+MVP 使用移动端优先的单任务流程，不保留课件成品中的多标签导航。
+
+### 1. 用餐需求页 `/`
+
+**包含对象**
+
+- 用餐需求
+
+**页面内容**
+
+- 当前地点
+- 餐次选择
+- 用餐场景
+- 人均预算
+- 发起推荐按钮
+
+**核心操作**
+
+- 浏览器自动定位
+- 手动修改地点
+- 修改餐次、场景和预算
+- 发起推荐
+
+**页面状态**
+
+- 默认状态：餐次根据当前时间预选
+- 定位中：禁止重复触发定位
+- 定位被拒绝：显示手动地点输入
+- 定位失败：显示重试和手动输入
+- 表单不完整：按钮禁用并标明缺少内容
+
+### 2. 推荐浏览页 `/recommendations/:mealRequestId`
+
+**包含对象**
+
+- 用餐需求摘要
+- 推荐结果
+- 餐厅快照
+- 用户反馈
+
+**页面内容**
+
+- 当前餐次、场景和位置摘要
+- 当前推荐序号和候选数量
+- 餐厅卡片：图片、名称、品类、距离、评分、人均、营业状态
+- 推荐理由
+- 换一家与去这里
+
+**核心操作**
+
+- 查看当前推荐
+- 左右切换图片
+- 换一家
+- 选择并打开高德导航
+- 标记推荐不合适
+- 返回修改用餐需求
+
+**页面状态**
+
+- 查询中：展示明确的查询进度
+- 首批结果已返回：立即展示第一家，其余候选继续处理
+- 候选不足：后台扩大范围，不打断当前浏览
+- 没有结果：提供扩大范围和修改条件
+- 高德查询失败：保留用户条件并允许重试
+- 图片缺失：使用品类占位图，不显示破图
+- 价格或评分缺失：隐藏对应字段，不用零值代替
+
+### 3. 餐厅信息层
+
+MVP 不做独立详情页。点击餐厅卡片后，从推荐浏览页底部展开信息层。
+
+**包含对象**
+
+- 餐厅快照
+- 推荐结果
+
+**页面内容**
+
+- 完整地址
+- 营业时间
+- 电话
+- 更多图片
+- 推荐与筛选依据
+- 去高德导航
+
+**核心操作**
+
+- 收起信息层
+- 打开高德
+- 标记信息或推荐不合适
+
+### 4. 不合适反馈层
+
+**包含对象**
+
+- 用户反馈
+- 推荐结果
+
+**反馈选项**
+
+- 不符合当前餐次
+- 不适合当前场景
+- 超出预算
+- 距离太远
+- 已打烊
+- 不喜欢这个品类
+- 其他
+
+提交后自动展示下一家，不阻塞用餐流程。
+
+### 页面流转
+
+```mermaid
+flowchart LR
+    A["用餐需求页"] -->|"发起推荐"| B["推荐浏览页"]
+    B -->|"修改条件"| A
+    B -->|"查看详情"| C["餐厅信息层"]
+    C -->|"去这里"| D["高德地图"]
+    B -->|"不合适"| E["反馈层"]
+    E -->|"提交并换一家"| B
+    B -->|"候选不足"| F["后台扩大范围"]
+    F --> B
+```
 
 ## 数据模型草案
 
-待确认第四步后补充。
+MVP 可以先使用轻量数据库。所有主键使用字符串 UUID，时间统一保存为 UTC。
+
+### `meal_requests`
+
+| 字段 | 类型 | 约束 |
+|---|---|---|
+| `id` | text | 主键 |
+| `session_id` | text | 非空，匿名会话 |
+| `longitude` | decimal | 非空 |
+| `latitude` | decimal | 非空 |
+| `location_label` | text | 非空 |
+| `city_code` | text | 可空 |
+| `meal_period` | text | 非空 |
+| `scene` | text | 非空 |
+| `budget_per_person` | integer | 非空 |
+| `search_radius` | integer | 非空 |
+| `preferences_json` | json | 可空 |
+| `status` | text | 非空 |
+| `rule_version` | text | 非空 |
+| `created_at` | timestamp | 非空 |
+| `completed_at` | timestamp | 可空 |
+
+### `restaurant_snapshots`
+
+每次查询保存当时的高德数据，避免营业状态、距离等动态字段污染其他用餐需求。
+
+| 字段 | 类型 | 约束 |
+|---|---|---|
+| `id` | text | 主键 |
+| `meal_request_id` | text | 外键，非空 |
+| `amap_poi_id` | text | 非空 |
+| `name` | text | 非空 |
+| `longitude` | decimal | 非空 |
+| `latitude` | decimal | 非空 |
+| `address` | text | 非空 |
+| `distance` | integer | 非空，单位米 |
+| `category` | text | 非空 |
+| `rating` | decimal | 可空 |
+| `average_cost` | integer | 可空 |
+| `business_status` | text | 非空 |
+| `business_hours_json` | json | 可空 |
+| `photos_json` | json | 可空 |
+| `phone` | text | 可空 |
+| `navigation_url` | text | 非空 |
+| `source_payload_json` | json | 可空，调试用 |
+| `fetched_at` | timestamp | 非空 |
+
+唯一约束：`meal_request_id + amap_poi_id`。
+
+### `recommendations`
+
+| 字段 | 类型 | 约束 |
+|---|---|---|
+| `id` | text | 主键 |
+| `meal_request_id` | text | 外键，非空 |
+| `restaurant_snapshot_id` | text | 外键，非空 |
+| `eligible` | boolean | 非空 |
+| `rank` | integer | 可空，被过滤时为空 |
+| `score` | decimal | 可空 |
+| `reasons_json` | json | 非空 |
+| `exclusion_reasons_json` | json | 可空 |
+| `status` | text | 非空 |
+| `rule_version` | text | 非空 |
+| `created_at` | timestamp | 非空 |
+
+唯一约束：`meal_request_id + restaurant_snapshot_id`。
+
+### `feedback_events`
+
+| 字段 | 类型 | 约束 |
+|---|---|---|
+| `id` | text | 主键 |
+| `session_id` | text | 非空 |
+| `meal_request_id` | text | 外键，非空 |
+| `recommendation_id` | text | 外键，可空 |
+| `event_type` | text | 非空 |
+| `reason` | text | 可空 |
+| `page_version` | text | 非空 |
+| `rule_version` | text | 非空 |
+| `created_at` | timestamp | 非空 |
+
+### MVP 指标
+
+| 指标 | 计算方式 | 用途 |
+|---|---|---|
+| 一分钟选择率 | 一分钟内产生 `selected` 的需求数 / 有结果的需求数 | 核心价值验证 |
+| 导航点击率 | 产生 `navigate` 的需求数 / 有结果的需求数 | 判断推荐是否转化为行动 |
+| 推荐跳过率 | `skip` 数 / `view` 数 | 判断整体推荐质量 |
+| 明显错误率 | 餐次不符、已打烊等反馈数 / 已展示推荐数 | 判断硬性筛选是否可靠 |
+| 无结果率 | 无结果需求数 / 总需求数 | 判断搜索范围和数据覆盖 |
+
+## 待进入开发拆解的功能
+
+1. 创建用餐需求并处理定位异常。
+2. 调用高德 MCP 获取、标准化并缓存餐厅快照。
+3. 按餐次、营业状态、场景和预算执行筛选与排序。
+4. 浏览候选餐厅并在不足时补充。
+5. 打开高德导航并记录 MVP 行为事件。
