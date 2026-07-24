@@ -86,6 +86,10 @@ h2 { margin: 0; font-family: "Noto Serif SC", serif; font-size: 22px; letter-spa
 .card-visual.has-photo .photo-shade { opacity: 1; }
 .card-visual.has-photo::before, .card-visual.has-photo::after { opacity: 0; }
 .dish-stamp, .card-kicker { position: relative; z-index: 2; }
+.photo-source { position: absolute; z-index: 3; top: 17px; left: 17px; border: 1px solid rgba(255,255,255,.38); border-radius: 999px; padding: 5px 8px; background: rgba(10,24,17,.48); color: rgba(255,255,255,.92); font-size: 9px; letter-spacing: .04em; backdrop-filter: blur(7px); }
+.photo-source[hidden] { display: none; }
+.photo-loading-label { position: absolute; z-index: 4; left: 50%; bottom: 17px; border-radius: 999px; padding: 6px 9px; transform: translateX(-50%) translateY(5px); background: rgba(10,24,17,.66); color: #fff; font-family: "Noto Serif SC", serif; font-size: 10px; opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; backdrop-filter: blur(7px); }
+.card-visual.photo-loading .photo-loading-label { opacity: 1; transform: translateX(-50%) translateY(0); }
 .dish-stamp { display: grid; width: 51px; height: 51px; place-items: center; border: 1px solid rgba(255, 246, 220, .65); border-radius: 50%; font-family: "ZCOOL XiaoWei", serif; font-size: 30px; }
 .card-kicker { margin: 0 0 3px; align-self: flex-start; font-family: "Noto Serif SC", serif; font-size: 13px; }
 .photo-nav { position: absolute; z-index: 3; top: 50%; display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid rgba(255,255,255,.48); border-radius: 50%; padding: 0; transform: translateY(-50%); background: rgba(10,24,17,.48); color: #fff; font-size: 18px; line-height: 1; backdrop-filter: blur(7px); transition: background .2s ease, transform .2s ease; }

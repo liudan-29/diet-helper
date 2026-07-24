@@ -25,6 +25,7 @@ const state = {
   search: null,
   photoIndexByRestaurant: {},
   failedPhotos: new Set(),
+  photoPromises: new Map(),
 };
 
 const elements = {
@@ -50,6 +51,7 @@ const elements = {
   restaurantCard: document.querySelector("#restaurantCard"),
   cardVisual: document.querySelector("#cardVisual"),
   restaurantPhoto: document.querySelector("#restaurantPhoto"),
+  photoSource: document.querySelector("#photoSource"),
   photoPreviousButton: document.querySelector("#photoPreviousButton"),
   photoNextButton: document.querySelector("#photoNextButton"),
   photoPagination: document.querySelector("#photoPagination"),
@@ -126,25 +128,62 @@ function renderRestaurantPhoto(item) {
   );
   const photoUrl = photoUrls[currentIndex] || "";
   state.photoIndexByRestaurant[item.id] = currentIndex;
-  elements.cardVisual.classList.remove("has-photo");
-  elements.restaurantPhoto.removeAttribute("src");
-  elements.restaurantPhoto.alt = "";
-  elements.restaurantPhoto.dataset.photoUrl = photoUrl;
+  elements.restaurantPhoto.dataset.pendingPhotoUrl = photoUrl;
   renderPhotoControls(item, photoUrls, currentIndex);
 
-  if (!photoUrl) return;
+  if (!photoUrl) {
+    elements.cardVisual.classList.remove("has-photo", "photo-loading");
+    elements.restaurantPhoto.removeAttribute("src");
+    elements.restaurantPhoto.alt = "";
+    elements.restaurantPhoto.dataset.photoUrl = "";
+    return;
+  }
 
-  elements.restaurantPhoto.onload = () => {
-    if (elements.restaurantPhoto.dataset.photoUrl !== photoUrl) return;
-    elements.cardVisual.classList.add("has-photo");
-  };
-  elements.restaurantPhoto.onerror = () => {
-    if (elements.restaurantPhoto.dataset.photoUrl !== photoUrl) return;
+  elements.cardVisual.classList.add("photo-loading");
+  preloadRestaurantPhotos(photoUrls);
+  loadPhoto(photoUrl)
+    .then(() => {
+      if (elements.restaurantPhoto.dataset.pendingPhotoUrl !== photoUrl) return;
+      elements.restaurantPhoto.onload = () => {
+        if (elements.restaurantPhoto.dataset.pendingPhotoUrl !== photoUrl) return;
+        elements.restaurantPhoto.dataset.photoUrl = photoUrl;
+        elements.cardVisual.classList.add("has-photo");
+        elements.cardVisual.classList.remove("photo-loading");
+      };
+      elements.restaurantPhoto.alt = `${item.name}实景照片，第${currentIndex + 1}张，共${photoUrls.length}张`;
+      elements.restaurantPhoto.src = photoUrl;
+      if (elements.restaurantPhoto.complete && elements.restaurantPhoto.naturalWidth > 0) {
+        elements.restaurantPhoto.onload();
+      }
+    })
+    .catch(() => {
+      if (elements.restaurantPhoto.dataset.pendingPhotoUrl !== photoUrl) return;
+      renderRestaurantPhoto(item);
+    });
+}
+
+function preloadRestaurantPhotos(photoUrls) {
+  photoUrls.forEach((photoUrl) => {
+    loadPhoto(photoUrl).catch(() => {});
+  });
+}
+
+function loadPhoto(photoUrl) {
+  if (state.photoPromises.has(photoUrl)) {
+    return state.photoPromises.get(photoUrl);
+  }
+  const promise = new Promise((resolve, reject) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = resolve;
+    image.onerror = () => reject(new Error("照片加载失败"));
+    image.src = photoUrl;
+  }).catch((error) => {
     state.failedPhotos.add(photoUrl);
-    renderRestaurantPhoto(item);
-  };
-  elements.restaurantPhoto.alt = `${item.name}实景照片，第${currentIndex + 1}张，共${photoUrls.length}张`;
-  elements.restaurantPhoto.src = photoUrl;
+    throw error;
+  });
+  state.photoPromises.set(photoUrl, promise);
+  return promise;
 }
 
 function restaurantPhotoUrls(item) {
@@ -167,6 +206,10 @@ function renderPhotoControls(item, photoUrls, currentIndex) {
         .join("")
     : "";
   elements.photoPagination.dataset.restaurantId = item.id;
+  elements.photoSource.hidden = photoUrls.length === 0;
+  elements.photoSource.textContent = photoUrls.length
+    ? `高德实景 · ${currentIndex + 1}/${photoUrls.length}`
+    : "";
 }
 
 function changeRestaurantPhoto(step) {
