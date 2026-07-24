@@ -199,7 +199,83 @@
 
 ## 第三步：对象关系
 
-待确认第二步后补充。
+### 关系总览
+
+```mermaid
+erDiagram
+    MEAL_REQUEST ||--o{ RECOMMENDATION : "生成"
+    RESTAURANT ||--o{ RECOMMENDATION : "被匹配"
+    MEAL_REQUEST ||--o{ FEEDBACK_EVENT : "产生"
+    RECOMMENDATION ||--o{ FEEDBACK_EVENT : "收到"
+
+    MEAL_REQUEST {
+        string id
+        string mealPeriod
+        string scene
+        number budgetPerPerson
+        number searchRadius
+    }
+
+    RESTAURANT {
+        string amapPoiId
+        string name
+        number distance
+        string category
+    }
+
+    RECOMMENDATION {
+        string id
+        string mealRequestId
+        string amapPoiId
+        boolean eligible
+        number rank
+        number score
+    }
+
+    FEEDBACK_EVENT {
+        string id
+        string mealRequestId
+        string recommendationId
+        string eventType
+    }
+```
+
+### 关系说明
+
+| 起点 | 终点 | 关系 | 是否从属 | 说明 |
+|---|---|---|---:|---|
+| 用餐需求 | 推荐结果 | 一对多 | 是 | 一次查询会生成多条推荐结果；删除本次需求时一并删除 |
+| 餐厅 | 推荐结果 | 一对多 | 否 | 同一家餐厅可以出现在多次用餐需求里 |
+| 用餐需求 | 用户反馈 | 一对多 | 是 | 一次选择过程会产生查看、跳过、选择和导航等多个事件 |
+| 推荐结果 | 用户反馈 | 一对多 | 否 | 单条推荐可以收到多个事件；有些会话级反馈不关联具体推荐 |
+
+### 数据流
+
+```text
+用户填写用餐需求
+  → 后端调用高德 MCP 查询附近餐厅
+  → 餐厅数据标准化
+  → 硬性筛选
+  → 生成推荐结果并排序
+  → 前端展示餐厅卡片
+  → 用户换一家、选择或导航
+  → 记录用户反馈
+```
+
+### 页面跳转约束
+
+- 用户只能从当前用餐需求进入推荐结果，不能脱离需求直接浏览全量餐厅。
+- 餐厅详情由推荐结果进入，返回时保留当前需求和浏览位置。
+- 点击导航属于推荐结果的最终转化动作，同时打开高德。
+- 用户换一家只改变当前展示的推荐结果，不重新创建用餐需求。
+- 当前候选池不足时，系统扩大范围并补充推荐结果，不清空已浏览记录。
+
+### 删除与保留规则
+
+- 用户主动重新开始时，创建新的用餐需求；旧需求不再继续追加推荐。
+- 用餐需求及其推荐结果和反馈保留到 MVP 测试结束，用于计算选择率和导航率。
+- 餐厅数据只保存查询快照，不建立长期自营餐厅库。
+- 同一个高德 POI 在不同查询中可以保留不同的距离、营业状态和抓取时间。
 
 ## 第四步：页面结构
 
