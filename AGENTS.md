@@ -15,6 +15,8 @@
 
 - Node.js最低版本为20，使用ES Module。
 - `server.js`负责静态资源和API；高德MCP客户端位于`lib/amap-mcp.js`；筛选排序位于`lib/recommendations.js`。
+- 本地运行使用`server.js`；公开托管使用`sites-worker.js`。两套入口必须共用`lib/amap-mcp.js`和`lib/recommendations.js`，不得复制筛选规则形成两套结果。
+- `scripts/build-sites.js`生成`dist/`静态资源和边缘函数包；`dist/`是构建产物，不提交仓库。
 - `app.js`只负责四入口编排、导航与模块生命周期；入口逻辑分别放在`lib/where-to-eat.js`、`lib/cooking-ui.js`、`lib/records-ui.js`和`lib/profile-ui.js`。
 - 结构化本地数据统一经`lib/local-store.js`读写；记录照片统一经`lib/photo-store.js`读写；做饭方案规则统一放在`lib/cooking-plans.js`。
 - 前端动态HTML必须经过`lib/ui.js`中的转义函数处理，不得直接拼接未经转义的用户输入。
