@@ -164,3 +164,9 @@
 - 排查用户手机打不开公开网址：Sites权限仍为`public`，匿名Chrome在390×844移动视口可完整加载，iPhone Safari、Android Chrome和微信User-Agent请求均返回200。
 - 同一网址通过无浏览器执行环境的curl直接访问会被Cloudflare返回403，说明`chatgpt.site`存在客户端或网络层访问检查；应用内浏览器、缓存的旧401页面或部分手机网络可能因此打不开。
 - 当前页面本身没有移动端布局或JavaScript启动错误。若要提高给中国大陆其他用户访问的稳定性，需要改用自有域名或换到面向国内网络的托管入口。
+
+## 2026-07-25 00:10
+
+- 用户提供微信内置浏览器截图，页面明确显示`Attention Required | Cloudflare`和`you have been blocked`，确认拦截发生在`chatgpt.site`的Cloudflare安全层。
+- Sites后台仍为公开访问；对应被拦截请求没有进入应用Worker日志，因此前端代码、接口和站点公开权限都无法在应用层修复这次拦截。
+- 当前Sites连接器不提供WAF、Bot Management或Browser Integrity Check开关。可行路径是绑定自有域名后复测，或迁移到可自行控制安全规则、面向目标用户网络的托管平台。
