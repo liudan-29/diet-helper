@@ -88,11 +88,16 @@ test("搜索计划使用餐次对应关键词并限制最大范围", () => {
   assert.ok(plans.every((plan) => plan.radius <= 5000));
 });
 
-test("Web详情照片是主来源，缺失时使用MCP首图", () => {
+test("MCP首图作为头图候选，后接Web详情图集并去重", () => {
   const result = selectRestaurantPhotos(
     [
       { id: "p1", name: "有详情图", photos: ["https://mcp.test/cover.jpg"] },
       { id: "p2", name: "无详情图", photos: ["https://mcp.test/fallback.jpg"] },
+      {
+        id: "p3",
+        name: "首图重复",
+        photos: ["http://store.is.autonavi.com/showpic/3"],
+      },
     ],
     [
       {
@@ -103,14 +108,26 @@ test("Web详情照片是主来源，缺失时使用MCP首图", () => {
           { url: "http://store.is.autonavi.com/showpic/2" },
         ],
       },
+      {
+        id: "p3",
+        photos: [
+          { url: "https://store.is.autonavi.com/showpic/3" },
+          { url: "https://web.test/other.jpg" },
+        ],
+      },
     ]
   );
 
   assert.deepEqual(result[0].photos, [
+    "https://mcp.test/cover.jpg",
     "https://web.test/1.jpg",
     "https://store.is.autonavi.com/showpic/2",
   ]);
   assert.deepEqual(result[1].photos, ["https://mcp.test/fallback.jpg"]);
+  assert.deepEqual(result[2].photos, [
+    "https://store.is.autonavi.com/showpic/3",
+    "https://web.test/other.jpg",
+  ]);
 });
 
 test("照片详情接口按POI ID批量查询", async () => {
