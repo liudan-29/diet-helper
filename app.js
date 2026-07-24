@@ -10,7 +10,11 @@ const defaultMeal =
 
 const state = {
   meal: defaultMeal,
-  scene: "日常",
+  occasion: "日常",
+  customOccasion: "",
+  partySize: null,
+  tastePreferences: [],
+  customRequirement: "",
   budget: 80,
   radius: 1000,
   location: null,
@@ -29,6 +33,10 @@ const elements = {
   manualLocationButton: document.querySelector("#manualLocationButton"),
   budgetRange: document.querySelector("#budgetRange"),
   budgetOutput: document.querySelector("#budgetOutput"),
+  customOccasionField: document.querySelector("#customOccasionField"),
+  customOccasionInput: document.querySelector("#customOccasionInput"),
+  partySizeInput: document.querySelector("#partySizeInput"),
+  customRequirementInput: document.querySelector("#customRequirementInput"),
   recommendButton: document.querySelector("#recommendButton"),
   formMessage: document.querySelector("#formMessage"),
   resultSection: document.querySelector("#resultSection"),
@@ -148,7 +156,11 @@ function restaurantMeta(item) {
 
 function buildReason(item) {
   const reasons = item.reasons || [];
-  if (reasons.length) return `${reasons.join("，")}，符合这次${state.scene}${state.meal}的条件。`;
+  const selectedOccasion =
+    state.occasion === "其他" ? state.customOccasion : state.occasion;
+  const occasion = selectedOccasion === "日常" ? "" : selectedOccasion;
+  const party = state.partySize > 1 ? `${state.partySize}人` : "一人";
+  if (reasons.length) return `${reasons.join("，")}，符合这次${party}${occasion}${state.meal}的条件。`;
   return `这家店位于本次搜索范围内，可以作为${state.meal}候选。`;
 }
 
@@ -181,11 +193,49 @@ document.querySelectorAll(".chip-group").forEach((group) => {
   group.addEventListener("click", (event) => {
     const chip = event.target.closest(".chip");
     if (!chip) return;
+    if (group.dataset.multi === "true") {
+      updateTasteSelection(group, chip);
+      return;
+    }
     group.querySelectorAll(".chip").forEach((button) => {
       button.classList.toggle("active", button === chip);
     });
     state[group.dataset.group] = chip.dataset.value;
+    if (group.dataset.group === "occasion") {
+      const isCustom = chip.dataset.value === "其他";
+      elements.customOccasionField.hidden = !isCustom;
+      if (isCustom) elements.customOccasionInput.focus();
+    }
   });
+});
+
+function updateTasteSelection(group, chip) {
+  if (chip.dataset.value === "不限") {
+    group.querySelectorAll(".chip").forEach((button) => {
+      button.classList.toggle("active", button === chip);
+    });
+    state.tastePreferences = [];
+    return;
+  }
+
+  chip.classList.toggle("active");
+  group.querySelector('[data-value="不限"]').classList.remove("active");
+  state.tastePreferences = [...group.querySelectorAll(".chip.active")].map(
+    (button) => button.dataset.value
+  );
+  if (!state.tastePreferences.length) {
+    group.querySelector('[data-value="不限"]').classList.add("active");
+  }
+}
+
+elements.partySizeInput.addEventListener("input", (event) => {
+  state.partySize = Number(event.target.value);
+});
+elements.customOccasionInput.addEventListener("input", (event) => {
+  state.customOccasion = event.target.value;
+});
+elements.customRequirementInput.addEventListener("input", (event) => {
+  state.customRequirement = event.target.value;
 });
 
 elements.budgetRange.addEventListener("input", (event) => {
@@ -253,6 +303,21 @@ async function requestRecommendations() {
     showManualLocation("请先定位或输入地点。");
     return;
   }
+  const partySize = Number(elements.partySizeInput.value);
+  if (!Number.isInteger(partySize) || partySize < 1 || partySize > 50) {
+    elements.formMessage.textContent = "同行人数请填写1至50之间的整数。";
+    elements.partySizeInput.focus();
+    return;
+  }
+  const customOccasion = elements.customOccasionInput.value.trim();
+  if (state.occasion === "其他" && !customOccasion) {
+    elements.formMessage.textContent = "请填写这次的用餐场合。";
+    elements.customOccasionInput.focus();
+    return;
+  }
+  state.partySize = partySize;
+  state.customOccasion = customOccasion;
+  state.customRequirement = elements.customRequirementInput.value.trim();
 
   setLoading(true);
   elements.formMessage.textContent = "正在查询附近餐厅并筛选…";
@@ -268,7 +333,11 @@ async function requestRecommendations() {
         longitude: state.location.longitude,
         locationLabel: state.location.label,
         mealPeriod: state.meal,
-        scene: state.scene,
+        occasion: state.occasion,
+        customOccasion: state.customOccasion,
+        partySize: state.partySize,
+        tastePreferences: state.tastePreferences,
+        customRequirement: state.customRequirement,
         budget: state.budget,
         radius: state.radius,
       }),
@@ -342,7 +411,10 @@ function recordEvent(type, restaurantId) {
     type,
     restaurantId,
     mealPeriod: state.meal,
-    scene: state.scene,
+    occasion: state.occasion === "其他" ? state.customOccasion : state.occasion,
+    partySize: state.partySize,
+    tastePreferences: state.tastePreferences,
+    customRequirement: state.customRequirement,
     createdAt: new Date().toISOString(),
   });
   localStorage.setItem("diet-helper-events", JSON.stringify(events.slice(-200)));

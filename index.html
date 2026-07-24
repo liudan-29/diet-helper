@@ -53,11 +53,48 @@
         </div>
         <div class="picker-row">
           <span class="picker-label">什么场合</span>
-          <div class="chip-group" data-group="scene">
-            <button class="chip active" data-value="日常" type="button">日常</button>
-            <button class="chip" data-value="请客" type="button">请客</button>
-            <button class="chip" data-value="一个人" type="button">一个人</button>
-            <button class="chip" data-value="想吃清淡" type="button">想吃清淡</button>
+          <div class="picker-control">
+            <div class="chip-group" data-group="occasion">
+              <button class="chip active" data-value="日常" type="button">日常</button>
+              <button class="chip" data-value="请客" type="button">请客</button>
+              <button class="chip" data-value="约会" type="button">约会</button>
+              <button class="chip" data-value="聚餐" type="button">聚餐</button>
+              <button class="chip" data-value="其他" type="button">其他</button>
+            </div>
+            <label class="custom-field" id="customOccasionField" hidden>
+              <span class="sr-only">自定义用餐场合</span>
+              <input id="customOccasionInput" type="text" maxlength="20" placeholder="例如：看球、赶时间" />
+            </label>
+          </div>
+        </div>
+        <div class="picker-row">
+          <label class="picker-label" for="partySizeInput">同行人数</label>
+          <label class="number-field">
+            <input id="partySizeInput" type="number" min="1" max="50" step="1" placeholder="例如：4" inputmode="numeric" />
+            <span>人，含自己</span>
+          </label>
+        </div>
+        <div class="picker-row">
+          <span class="picker-label">口味偏好</span>
+          <div class="chip-group" data-group="taste" data-multi="true">
+            <button class="chip active" data-value="不限" type="button">不限</button>
+            <button class="chip" data-value="清淡" type="button">清淡</button>
+            <button class="chip" data-value="辣" type="button">辣</button>
+            <button class="chip" data-value="少油" type="button">少油</button>
+            <button class="chip" data-value="素食" type="button">素食</button>
+          </div>
+        </div>
+        <div class="picker-row requirement-row">
+          <label class="picker-label" for="customRequirementInput">其他要求</label>
+          <div>
+            <input
+              class="text-field"
+              id="customRequirementInput"
+              type="text"
+              maxlength="80"
+              placeholder="例如：想吃面、不吃火锅"
+            />
+            <p class="field-help">餐厅类型会参与筛选；菜品忌口、过敏或医疗要求仍需向餐厅确认。</p>
           </div>
         </div>
         <div class="picker-row budget-row">
