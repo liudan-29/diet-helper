@@ -62,9 +62,9 @@ async function handleRecommendations(request, response) {
       count: restaurants.length,
     });
   } catch (error) {
-    console.error("Recommendation query failed:", error);
+    console.error("Recommendation query failed:", safeErrorMessage(error));
     sendJson(response, 502, {
-      error: error.message || "高德MCP查询失败",
+      error: publicQueryError(error),
       retryable: true,
     });
   }
@@ -112,6 +112,19 @@ function sendJson(response, status, data) {
     "Cache-Control": "no-store",
   });
   response.end(JSON.stringify(data));
+}
+
+function safeErrorMessage(error) {
+  return String(error?.message || error || "unknown error")
+    .replace(/([?&]key=)[^&\s]+/gi, "$1[redacted]")
+    .replace(/\b[a-f0-9]{32}\b/gi, "[redacted]");
+}
+
+function publicQueryError(error) {
+  const message = safeErrorMessage(error);
+  if (message.includes("超时")) return "高德MCP查询超时";
+  if (message.includes("周边搜索工具")) return "高德MCP暂未提供周边搜索";
+  return "高德MCP查询失败";
 }
 
 server.listen(port, () => {

@@ -16,6 +16,8 @@
 - `server.js`负责静态资源和API；高德MCP客户端位于`lib/amap-mcp.js`；筛选排序位于`lib/recommendations.js`。
 - 前端不得持有或输出高德Key。
 - 未配置`AMAP_MCP_KEY`时使用演示数据；配置后自动切换到高德MCP。
+- 高德MCP的`maps_around_search`可能只返回基础POI且没有坐标；标准化前必须用`maps_search_detail`补齐详情，不能直接把这些POI丢弃。
+- 真实接入验证使用`npm run check:amap`，验证脚本不得输出Key。
 - 运行测试使用`npm test`，启动使用`npm start`。
 
 ## 产品范围护栏

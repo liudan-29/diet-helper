@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   createMockRestaurants,
+  normalizePoi,
   rankRestaurants,
   validateMealRequest,
 } from "../lib/recommendations.js";
@@ -61,6 +62,29 @@ test("没有高德Key时仍能生成可导航的演示推荐", () => {
   const result = createMockRestaurants(validateMealRequest(request));
   assert.ok(result.length >= 3);
   assert.match(result[0].navigationUrl, /^https:\/\/uri\.amap\.com\/navigation/);
+});
+
+test("高德详情字段会转换成餐厅快照并计算距离", () => {
+  const result = normalizePoi(
+    {
+      id: "amap-1",
+      name: "测试餐厅",
+      location: "116.402873,39.914525",
+      address: "测试地址",
+      type: "餐饮服务;中餐厅;北京菜",
+      photo: "https://example.com/photo.jpg",
+      cost: "68.00",
+      rating: "4.8",
+      open_time: "00:00-23:59",
+    },
+    request
+  );
+
+  assert.equal(result.averageCost, 68);
+  assert.equal(result.rating, 4.8);
+  assert.equal(result.photos.length, 1);
+  assert.ok(result.distance > 0);
+  assert.equal(result.businessStatus, "open");
 });
 
 function restaurant(overrides = {}) {

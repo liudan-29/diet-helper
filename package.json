@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "check:amap": "node scripts/check-amap.js",
     "dev": "node --watch server.js",
     "start": "node server.js",
     "test": "node --test"
