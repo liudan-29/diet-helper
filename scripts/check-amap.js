@@ -18,15 +18,17 @@ const request = {
 };
 
 try {
-  const restaurants = await searchAmapRestaurants(
+  const result = await searchAmapRestaurants(
     request,
     process.env.AMAP_MCP_KEY
   );
   console.log(
     JSON.stringify({
       ok: true,
-      count: restaurants.length,
-      first: restaurants[0]?.name ?? null,
+      count: result.restaurants.length,
+      first: result.restaurants[0]?.name ?? null,
+      expanded: result.search.expanded,
+      usedRadius: result.search.usedRadius,
     })
   );
 } catch (error) {

@@ -43,6 +43,8 @@ test("服务端健康检查和演示推荐接口可用", async (context) => {
   assert.equal(recommendationResponse.status, 200);
   assert.equal(payload.mode, "mock");
   assert.ok(payload.restaurants.length >= 3);
+  assert.equal(payload.search.expanded, false);
+  assert.equal(payload.search.usedRadius, 1000);
 });
 
 function waitForServer(child) {

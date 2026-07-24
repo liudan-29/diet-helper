@@ -51,15 +51,25 @@ async function handleRecommendations(request, response) {
 
   const apiKey = process.env.AMAP_MCP_KEY?.trim();
   try {
-    const restaurants = apiKey
+    const result = apiKey
       ? await searchAmapRestaurants(input, apiKey)
-      : createMockRestaurants(input);
+      : {
+          restaurants: createMockRestaurants(input),
+          search: {
+            requestedRadius: input.radius,
+            usedRadius: input.radius,
+            expanded: false,
+            attempts: 0,
+            targetCount: 3,
+          },
+        };
 
     sendJson(response, 200, {
       mode: apiKey ? "amap-mcp" : "mock",
       request: input,
-      restaurants,
-      count: restaurants.length,
+      restaurants: result.restaurants,
+      count: result.restaurants.length,
+      search: result.search,
     });
   } catch (error) {
     console.error("Recommendation query failed:", safeErrorMessage(error));

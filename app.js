@@ -18,6 +18,7 @@ const state = {
   index: 0,
   loading: false,
   dataMode: "mock",
+  search: null,
 };
 
 const elements = {
@@ -220,7 +221,7 @@ async function requestRecommendations() {
   setLoading(true);
   elements.formMessage.textContent = "正在查询附近餐厅并筛选…";
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const timeout = setTimeout(() => controller.abort(), 25_000);
 
   try {
     const response = await fetch("/api/recommendations", {
@@ -243,22 +244,32 @@ async function requestRecommendations() {
     state.restaurants = payload.restaurants || [];
     state.index = 0;
     state.dataMode = payload.mode;
+    state.search = payload.search || null;
     elements.resultSection.hidden = false;
     renderRestaurant();
-    elements.dataNote.textContent =
-      state.dataMode === "amap-mcp"
-        ? "餐厅数据来自高德MCP；推荐顺序由本项目的筛选规则生成。"
-        : "当前使用演示数据。配置AMAP_MCP_KEY后会自动切换为高德真实餐厅。";
+    elements.dataNote.textContent = buildDataNote();
     elements.formMessage.textContent = "";
     elements.resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
   } catch (error) {
     const message =
-      error.name === "AbortError" ? "查询超过10秒，请重试。" : `${error.message}，请重试。`;
+      error.name === "AbortError" ? "查询超过25秒，请重试。" : `${error.message}，请重试。`;
     elements.formMessage.textContent = message;
   } finally {
     clearTimeout(timeout);
     setLoading(false);
   }
+}
+
+function buildDataNote() {
+  if (state.dataMode !== "amap-mcp") {
+    return "当前使用演示数据。配置AMAP_MCP_KEY后会自动切换为高德真实餐厅。";
+  }
+  if (state.search?.expanded) {
+    return `餐厅数据来自高德MCP；候选不足时已自动扩大到${formatDistance(
+      state.search.usedRadius
+    )}，共找到${state.restaurants.length}家合适餐厅。`;
+  }
+  return `餐厅数据来自高德MCP；本次共找到${state.restaurants.length}家合适餐厅。`;
 }
 
 function setLoading(loading) {
