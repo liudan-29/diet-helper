@@ -10,6 +10,14 @@
 - 高德 MCP 与模型服务的真实凭证只放在环境变量中，禁止写入仓库。
 - 暂不做原生 APP、微信小程序、支付、社交和医疗建议。
 
+## 技术约定
+
+- Node.js最低版本为20，使用ES Module。
+- `server.js`负责静态资源和API；高德MCP客户端位于`lib/amap-mcp.js`；筛选排序位于`lib/recommendations.js`。
+- 前端不得持有或输出高德Key。
+- 未配置`AMAP_MCP_KEY`时使用演示数据；配置后自动切换到高德MCP。
+- 运行测试使用`npm test`，启动使用`npm start`。
+
 ## 产品范围护栏
 
 - MVP 暂缓的功能不等于取消。完整产品功能清单以 `docs/product-roadmap.md` 为准。

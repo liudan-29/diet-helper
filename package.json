@@ -1,0 +1,21 @@
+{
+  "name": "diet-helper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "dotenv": "^17.2.1"
+  },
+  "overrides": {
+    "@hono/node-server": "2.0.11"
+  }
+}

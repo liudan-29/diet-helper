@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1f3229" />
     <title>吃点好的 · 饮食小助手</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Serif+SC:wght@600;700;900&family=ZCOOL+XiaoWei&display=swap" rel="stylesheet" />
@@ -21,6 +22,18 @@
           <span class="location-dot"></span><span id="locationText">定位到附近</span>
         </button>
       </header>
+
+      <section class="location-panel" id="locationPanel" hidden>
+        <div>
+          <p class="eyebrow">手动选择地点</p>
+          <p>定位不可用时，先输入测试地点名称。接入地点搜索后会自动转换成真实坐标。</p>
+        </div>
+        <label>
+          <span>地点</span>
+          <input id="manualLocationInput" type="text" maxlength="80" placeholder="例如：北京国贸" />
+        </label>
+        <button id="manualLocationButton" type="button">使用这个地点</button>
+      </section>
 
       <section class="hero" id="top">
         <p class="eyebrow">今天这一餐，别将就。</p>
@@ -53,6 +66,7 @@
           <output id="budgetOutput" for="budgetRange">¥80</output>
         </div>
         <button class="recommend-button" id="recommendButton" type="button">给我挑一家 <span>↗</span></button>
+        <p class="form-message" id="formMessage" role="status"></p>
       </section>
 
       <section class="result-section" id="resultSection" aria-live="polite">
@@ -81,6 +95,7 @@
             <p class="reason" id="restaurantReason">离你近，正在营业；午餐吃得扎实，又不会花太多时间。</p>
             <div class="tag-list" id="tagList"></div>
             <div class="card-actions">
+              <button class="secondary-button" id="previousButton" type="button">上一家</button>
               <button class="secondary-button" id="nextButton" type="button">换一家</button>
               <button class="primary-button" id="navigateButton" type="button">去这里 <span>→</span></button>
             </div>
@@ -89,12 +104,10 @@
         <p class="data-note" id="dataNote">现在是演示数据。接入高德 MCP 后，这里会显示附近真实餐厅。</p>
       </section>
 
-      <nav class="bottom-nav" aria-label="主导航">
-        <button class="nav-item active" type="button"><span>⌁</span>去哪吃</button>
-        <button class="nav-item" type="button"><span>◎</span>自己做</button>
-        <button class="nav-item" type="button"><span>＋</span>记一笔</button>
-        <button class="nav-item" type="button"><span>◌</span>我的</button>
-      </nav>
+      <footer class="roadmap-note">
+        <span>第一阶段</span>
+        <p>先把“去哪吃”做完整。自己做、记一笔和我的已经保留在产品路线图中。</p>
+      </footer>
     </main>
     <script src="app.js"></script>
   </body>

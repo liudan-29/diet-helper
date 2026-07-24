@@ -16,7 +16,7 @@ body { margin: 0; color: var(--ink); background: var(--cream); font-family: "DM 
 button, input { font: inherit; }
 button { cursor: pointer; }
 
-.app-shell { position: relative; width: min(100%, 520px); min-height: 100dvh; margin: 0 auto; padding: 24px 22px 106px; overflow: hidden; background: var(--paper); }
+.app-shell { position: relative; width: min(100%, 520px); min-height: 100dvh; margin: 0 auto; padding: 24px 22px 44px; overflow: hidden; background: var(--paper); }
 .app-shell::before { content: ""; position: absolute; width: 350px; height: 350px; border: 1px solid rgba(111, 139, 89, .2); border-radius: 50%; right: -210px; top: 135px; box-shadow: 0 0 0 45px rgba(111, 139, 89, .04), 0 0 0 90px rgba(111, 139, 89, .03); pointer-events: none; }
 .topbar, .hero, .picker, .result-section { position: relative; z-index: 1; }
 .topbar { display: flex; align-items: center; justify-content: space-between; }
@@ -24,6 +24,16 @@ button { cursor: pointer; }
 .brand-mark { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50% 50% 50% 8px; background: var(--deep); color: var(--lime); font-size: 16px; }
 .location-button { display: flex; align-items: center; gap: 6px; border: 0; padding: 9px 10px; border-radius: 999px; background: #e8ebda; color: var(--deep); font-size: 11px; }
 .location-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 3px rgba(237, 125, 67, .17); }
+.location-button:disabled { cursor: wait; opacity: .65; }
+.location-panel { position: relative; z-index: 3; margin-top: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 17px; background: #fffdf6; box-shadow: 0 15px 40px rgba(42, 67, 46, .1); }
+.location-panel[hidden] { display: none; }
+.location-panel p { margin-bottom: 12px; color: var(--muted); font-family: "Noto Serif SC", serif; font-size: 12px; line-height: 1.65; }
+.location-panel .eyebrow { margin-bottom: 4px; color: var(--moss); font-family: "DM Mono", monospace; }
+.location-panel label { display: flex; align-items: center; gap: 10px; }
+.location-panel label span { color: var(--muted); font-size: 10px; }
+.location-panel input { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; outline: none; background: var(--paper); color: var(--ink); font-family: "Noto Serif SC", serif; }
+.location-panel input:focus { border-color: var(--moss); box-shadow: 0 0 0 3px rgba(111,139,89,.12); }
+.location-panel button { width: 100%; margin-top: 9px; border: 0; border-radius: 9px; padding: 11px; background: var(--deep); color: var(--cream); font-family: "Noto Serif SC", serif; }
 
 .hero { padding: 56px 0 34px; }
 .eyebrow { margin: 0 0 10px; color: var(--moss); font-size: 11px; letter-spacing: .14em; }
@@ -44,8 +54,11 @@ input[type="range"] { width: 100%; accent-color: var(--moss); }
 output { min-width: 38px; padding-top: 1px; color: var(--orange); font-size: 12px; }
 .recommend-button { width: 100%; border: 0; border-radius: 12px; padding: 15px 17px; background: var(--lime); color: var(--deep); text-align: left; font-family: "Noto Serif SC", serif; font-size: 16px; font-weight: 900; }
 .recommend-button span { float: right; font-family: "DM Mono", monospace; }
+.recommend-button:disabled { cursor: wait; filter: grayscale(.35); opacity: .62; }
+.form-message { min-height: 18px; margin: 9px 3px 0; color: var(--orange); font-family: "Noto Serif SC", serif; font-size: 11px; line-height: 1.5; }
 
 .result-section { margin-top: 42px; }
+.result-section[hidden] { display: none; }
 .result-heading { display: flex; align-items: end; justify-content: space-between; margin-bottom: 15px; }
 .result-heading .eyebrow { margin-bottom: 7px; }
 h2 { margin: 0; font-family: "Noto Serif SC", serif; font-size: 22px; letter-spacing: -.04em; }
@@ -70,16 +83,15 @@ h3 { margin-bottom: 5px; font-family: "Noto Serif SC", serif; font-size: 25px; l
 .reason { margin: 18px 0 14px; color: #dde3ce; font-family: "Noto Serif SC", serif; font-size: 14px; line-height: 1.7; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { border: 1px solid rgba(243, 239, 228, .18); border-radius: 999px; padding: 5px 8px; color: #cbd6bf; font-size: 10px; }
-.card-actions { display: grid; grid-template-columns: 1fr 1.25fr; gap: 8px; margin-top: 19px; }
+.card-actions { display: grid; grid-template-columns: .82fr .92fr 1.25fr; gap: 8px; margin-top: 19px; }
 .card-actions button { border-radius: 9px; padding: 12px 10px; font-family: "Noto Serif SC", serif; font-size: 13px; }
 .secondary-button { border: 1px solid rgba(243, 239, 228, .22); background: transparent; color: var(--cream); }
 .primary-button { border: 0; background: var(--lime); color: var(--deep); font-weight: 900; }
 .primary-button span { margin-left: 7px; font-family: "DM Mono", monospace; }
 .data-note { margin: 12px 2px; color: var(--muted); font-family: "Noto Serif SC", serif; font-size: 11px; line-height: 1.55; }
 
-.bottom-nav { position: fixed; z-index: 4; bottom: 0; left: 50%; display: grid; width: min(100%, 520px); grid-template-columns: repeat(4, 1fr); transform: translateX(-50%); border-top: 1px solid var(--line); background: rgba(251, 248, 239, .94); backdrop-filter: blur(14px); }
-.nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; border: 0; padding: 12px 2px 14px; background: transparent; color: #899087; font-family: "Noto Serif SC", serif; font-size: 10px; }
-.nav-item span { font-family: "DM Mono", monospace; font-size: 17px; }
-.nav-item.active { color: var(--deep); font-weight: 900; }
+.roadmap-note { position: relative; z-index: 1; margin-top: 42px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); }
+.roadmap-note span { display: inline-block; margin-bottom: 8px; border: 1px solid var(--line); border-radius: 999px; padding: 5px 8px; color: var(--moss); font-size: 9px; }
+.roadmap-note p { margin: 0; font-family: "Noto Serif SC", serif; font-size: 11px; line-height: 1.7; }
 
 @media (min-width: 521px) { .app-shell { box-shadow: 0 0 60px rgba(37, 59, 37, .16); } }

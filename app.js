@@ -1,53 +1,37 @@
-const restaurants = [
-  {
-    name: "胡记锅贴",
-    meta: "锅贴 · 420m · 人均 ¥36",
-    rating: "4.8",
-    stamp: "川",
-    kicker: "锅气很足",
-    reason: "离你近，正在营业；午餐吃得扎实，又不会花太多时间。",
-    tags: ["正在营业", "上餐快", "适合一人"],
-    color: "linear-gradient(135deg, #e27d3d, #d84d2b 55%, #5e3a25)",
-  },
-  {
-    name: "青禾小馆",
-    meta: "江浙菜 · 650m · 人均 ¥72",
-    rating: "4.7",
-    stamp: "鲜",
-    kicker: "今天想吃清爽一点",
-    reason: "菜品选择多，口味不重；日常午餐也能坐得舒服。",
-    tags: ["蔬菜丰富", "可选小份", "环境安静"],
-    color: "linear-gradient(135deg, #779653, #3f6d54 58%, #23443d)",
-  },
-  {
-    name: "潮汕牛肉粿条",
-    meta: "潮汕菜 · 380m · 人均 ¥42",
-    rating: "4.6",
-    stamp: "牛",
-    kicker: "热汤暖胃",
-    reason: "距离最近的一家，出餐稳定；适合想快速吃上一顿热乎的午餐。",
-    tags: ["距离近", "出餐快", "热汤"],
-    color: "linear-gradient(135deg, #9c493a, #602e2b 58%, #302521)",
-  },
-  {
-    name: "山野菌子火锅",
-    meta: "火锅 · 880m · 人均 ¥118",
-    rating: "4.9",
-    stamp: "菌",
-    kicker: "适合慢慢吃一顿",
-    reason: "评分很高，适合有充足时间的聚餐；已经为午餐场景降低了优先级。",
-    tags: ["评分高", "适合请客", "可预约"],
-    color: "linear-gradient(135deg, #c3a55a, #785e3c 60%, #3f3927)",
-  },
-];
+const DEFAULT_TEST_LOCATION = {
+  latitude: 39.908823,
+  longitude: 116.39747,
+  label: "北京·测试位置",
+};
 
-const state = { meal: "午餐", scene: "日常", budget: 80, index: 0, located: false };
+const currentHour = new Date().getHours();
+const defaultMeal =
+  currentHour < 10 ? "早餐" : currentHour < 15 ? "午餐" : currentHour < 21 ? "晚餐" : "夜宵";
+
+const state = {
+  meal: defaultMeal,
+  scene: "日常",
+  budget: 80,
+  radius: 1000,
+  location: null,
+  restaurants: [],
+  index: 0,
+  loading: false,
+  dataMode: "mock",
+};
+
 const elements = {
   locationButton: document.querySelector("#locationButton"),
   locationText: document.querySelector("#locationText"),
+  locationPanel: document.querySelector("#locationPanel"),
+  manualLocationInput: document.querySelector("#manualLocationInput"),
+  manualLocationButton: document.querySelector("#manualLocationButton"),
   budgetRange: document.querySelector("#budgetRange"),
   budgetOutput: document.querySelector("#budgetOutput"),
   recommendButton: document.querySelector("#recommendButton"),
+  formMessage: document.querySelector("#formMessage"),
+  resultSection: document.querySelector("#resultSection"),
+  previousButton: document.querySelector("#previousButton"),
   nextButton: document.querySelector("#nextButton"),
   navigateButton: document.querySelector("#navigateButton"),
   resultTitle: document.querySelector("#resultTitle"),
@@ -64,27 +48,105 @@ const elements = {
   dataNote: document.querySelector("#dataNote"),
 };
 
+setDefaultMealChip();
+elements.resultSection.hidden = true;
+
+function setDefaultMealChip() {
+  const group = document.querySelector('[data-group="meal"]');
+  group.querySelectorAll(".chip").forEach((chip) => {
+    chip.classList.toggle("active", chip.dataset.value === defaultMeal);
+  });
+}
+
 function renderRestaurant() {
-  const item = restaurants[state.index];
-  elements.resultTitle.textContent = `附近适合${state.meal}的店`;
-  elements.resultCount.textContent = `${String(state.index + 1).padStart(2, "0")} / ${String(restaurants.length).padStart(2, "0")}`;
-  elements.cardVisual.style.background = item.color;
+  const item = state.restaurants[state.index];
+  if (!item) {
+    elements.resultSection.hidden = false;
+    elements.restaurantCard.hidden = true;
+    elements.resultTitle.textContent = "附近暂时没有合适结果";
+    elements.resultCount.textContent = "00 / 00";
+    elements.dataNote.textContent = "可以提高预算、修改场景或稍后扩大搜索范围。";
+    return;
+  }
+
+  elements.restaurantCard.hidden = false;
+  elements.resultTitle.textContent = `${state.location.label}附近的${state.meal}`;
+  elements.resultCount.textContent = `${String(state.index + 1).padStart(2, "0")} / ${String(
+    state.restaurants.length
+  ).padStart(2, "0")}`;
+  elements.cardVisual.style.background = visualGradient(item.category, state.index);
   elements.restaurantName.textContent = item.name;
-  elements.restaurantMeta.textContent = item.meta;
-  elements.restaurantRating.textContent = item.rating;
-  elements.dishStamp.textContent = item.stamp;
-  elements.cardKicker.textContent = item.kicker;
-  elements.restaurantReason.textContent = item.reason;
-  elements.tagList.innerHTML = item.tags.map((tag) => `<span class="tag">${tag}</span>`).join("");
+  elements.restaurantMeta.textContent = restaurantMeta(item);
+  elements.restaurantRating.hidden = item.rating === null;
+  elements.restaurantRating.textContent = item.rating?.toFixed?.(1) || item.rating || "";
+  elements.dishStamp.textContent = stampFor(item);
+  elements.cardKicker.textContent = item.reasons?.[0] || "附近可选";
+  elements.restaurantReason.textContent = buildReason(item);
+  elements.tagList.innerHTML = [
+    ...(item.businessStatus === "open" ? ["正在营业"] : []),
+    ...(item.reasons || []),
+  ]
+    .filter((value, index, values) => values.indexOf(value) === index)
+    .slice(0, 4)
+    .map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`)
+    .join("");
+
+  elements.previousButton.disabled = state.index === 0;
+  elements.nextButton.textContent =
+    state.index === state.restaurants.length - 1 ? "回到第一家" : "换一家";
+  elements.navigateButton.disabled = !item.navigationUrl;
   elements.restaurantCard.style.animation = "none";
-  requestAnimationFrame(() => { elements.restaurantCard.style.animation = "cardIn .45s ease both"; });
+  requestAnimationFrame(() => {
+    elements.restaurantCard.style.animation = "cardIn .45s ease both";
+  });
+  recordEvent("view", item.id);
+}
+
+function restaurantMeta(item) {
+  const values = [shortCategory(item.category)];
+  if (item.distance > 0) values.push(formatDistance(item.distance));
+  if (item.averageCost !== null) values.push(`人均 ¥${Math.round(item.averageCost)}`);
+  return values.join(" · ");
+}
+
+function buildReason(item) {
+  const reasons = item.reasons || [];
+  if (reasons.length) return `${reasons.join("，")}，符合这次${state.scene}${state.meal}的条件。`;
+  return `这家店位于本次搜索范围内，可以作为${state.meal}候选。`;
+}
+
+function shortCategory(category) {
+  return String(category || "餐饮").split(";").filter(Boolean).slice(-1)[0];
+}
+
+function stampFor(item) {
+  const value = shortCategory(item.category).replace(/餐厅|餐饮|服务|小吃/g, "");
+  return value.slice(0, 1) || "食";
+}
+
+function formatDistance(distance) {
+  if (distance >= 1000) return `${(distance / 1000).toFixed(1)}km`;
+  return `${Math.round(distance)}m`;
+}
+
+function visualGradient(category, index) {
+  const palettes = [
+    "linear-gradient(135deg, #e27d3d, #d84d2b 55%, #5e3a25)",
+    "linear-gradient(135deg, #779653, #3f6d54 58%, #23443d)",
+    "linear-gradient(135deg, #9c493a, #602e2b 58%, #302521)",
+    "linear-gradient(135deg, #c3a55a, #785e3c 60%, #3f3927)",
+  ];
+  if (/轻食|素食|江浙|粤菜/.test(category)) return palettes[1];
+  return palettes[index % palettes.length];
 }
 
 document.querySelectorAll(".chip-group").forEach((group) => {
   group.addEventListener("click", (event) => {
     const chip = event.target.closest(".chip");
     if (!chip) return;
-    group.querySelectorAll(".chip").forEach((button) => button.classList.toggle("active", button === chip));
+    group.querySelectorAll(".chip").forEach((button) => {
+      button.classList.toggle("active", button === chip);
+    });
     state[group.dataset.group] = chip.dataset.value;
   });
 });
@@ -95,28 +157,155 @@ elements.budgetRange.addEventListener("input", (event) => {
   elements.budgetOutput.textContent = `¥${state.budget}`;
 });
 
-elements.locationButton.addEventListener("click", () => {
-  state.located = !state.located;
-  elements.locationText.textContent = state.located ? "已定位 · 周边 1km" : "定位到附近";
-  elements.dataNote.textContent = state.located
-    ? "演示定位已开启。接入高德 MCP 后，将按你的真实位置获取餐厅。"
-    : "现在是演示数据。接入高德 MCP 后，这里会显示附近真实餐厅。";
-});
+elements.locationButton.addEventListener("click", locateUser);
+elements.manualLocationButton.addEventListener("click", useManualLocation);
 
-elements.recommendButton.addEventListener("click", () => {
-  state.index = 0;
+function locateUser() {
+  elements.formMessage.textContent = "";
+  if (!navigator.geolocation) {
+    showManualLocation("当前浏览器不支持定位，请输入测试地点。");
+    return;
+  }
+
+  elements.locationButton.disabled = true;
+  elements.locationText.textContent = "正在定位…";
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      state.location = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        label: "当前位置",
+      };
+      elements.locationText.textContent = "已定位 · 周边 1km";
+      elements.locationButton.disabled = false;
+      elements.locationPanel.hidden = true;
+      elements.formMessage.textContent = "";
+    },
+    () => {
+      elements.locationButton.disabled = false;
+      elements.locationText.textContent = "定位未完成";
+      showManualLocation("没有获得定位权限，可以输入地点继续体验。");
+    },
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60_000 }
+  );
+}
+
+function showManualLocation(message) {
+  elements.locationPanel.hidden = false;
+  elements.formMessage.textContent = message;
+  elements.manualLocationInput.focus();
+}
+
+function useManualLocation() {
+  const label = elements.manualLocationInput.value.trim();
+  if (!label) {
+    elements.formMessage.textContent = "请输入一个地点名称。";
+    return;
+  }
+  state.location = { ...DEFAULT_TEST_LOCATION, label: `${label} · 测试坐标` };
+  elements.locationText.textContent = label;
+  elements.locationPanel.hidden = true;
+  elements.formMessage.textContent = "手动地点暂用测试坐标；配置高德后会接入地点解析。";
+}
+
+elements.recommendButton.addEventListener("click", requestRecommendations);
+
+async function requestRecommendations() {
+  if (state.loading) return;
+  if (!state.location) {
+    showManualLocation("请先定位或输入地点。");
+    return;
+  }
+
+  setLoading(true);
+  elements.formMessage.textContent = "正在查询附近餐厅并筛选…";
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
+  try {
+    const response = await fetch("/api/recommendations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        latitude: state.location.latitude,
+        longitude: state.location.longitude,
+        locationLabel: state.location.label,
+        mealPeriod: state.meal,
+        scene: state.scene,
+        budget: state.budget,
+        radius: state.radius,
+      }),
+      signal: controller.signal,
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "查询失败");
+
+    state.restaurants = payload.restaurants || [];
+    state.index = 0;
+    state.dataMode = payload.mode;
+    elements.resultSection.hidden = false;
+    renderRestaurant();
+    elements.dataNote.textContent =
+      state.dataMode === "amap-mcp"
+        ? "餐厅数据来自高德MCP；推荐顺序由本项目的筛选规则生成。"
+        : "当前使用演示数据。配置AMAP_MCP_KEY后会自动切换为高德真实餐厅。";
+    elements.formMessage.textContent = "";
+    elements.resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  } catch (error) {
+    const message =
+      error.name === "AbortError" ? "查询超过10秒，请重试。" : `${error.message}，请重试。`;
+    elements.formMessage.textContent = message;
+  } finally {
+    clearTimeout(timeout);
+    setLoading(false);
+  }
+}
+
+function setLoading(loading) {
+  state.loading = loading;
+  elements.recommendButton.disabled = loading;
+  elements.recommendButton.innerHTML = loading
+    ? "正在认真挑选… <span>···</span>"
+    : "给我挑一家 <span>↗</span>";
+}
+
+elements.previousButton.addEventListener("click", () => {
+  if (state.index === 0) return;
+  state.index -= 1;
   renderRestaurant();
-  document.querySelector("#resultSection").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 elements.nextButton.addEventListener("click", () => {
-  state.index = (state.index + 1) % restaurants.length;
+  const current = state.restaurants[state.index];
+  if (current) recordEvent("skip", current.id);
+  state.index = (state.index + 1) % state.restaurants.length;
   renderRestaurant();
 });
 
 elements.navigateButton.addEventListener("click", () => {
-  elements.navigateButton.textContent = "接入高德后导航 →";
-  setTimeout(() => { elements.navigateButton.innerHTML = "去这里 <span>→</span>"; }, 1700);
+  const item = state.restaurants[state.index];
+  if (!item?.navigationUrl) return;
+  recordEvent("navigate", item.id);
+  window.open(item.navigationUrl, "_blank", "noopener,noreferrer");
 });
 
-renderRestaurant();
+function recordEvent(type, restaurantId) {
+  const events = JSON.parse(localStorage.getItem("diet-helper-events") || "[]");
+  events.push({
+    type,
+    restaurantId,
+    mealPeriod: state.meal,
+    scene: state.scene,
+    createdAt: new Date().toISOString(),
+  });
+  localStorage.setItem("diet-helper-events", JSON.stringify(events.slice(-200)));
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
