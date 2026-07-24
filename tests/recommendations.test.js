@@ -36,6 +36,15 @@ test("用餐需求会被标准化", () => {
   assert.deepEqual(result.tastePreferences, []);
 });
 
+test("人均预算可以从零元开始", () => {
+  const result = validateMealRequest({ ...request, budget: 0 });
+  assert.equal(result.budget, 0);
+  assert.throws(
+    () => validateMealRequest({ ...request, budget: -1 }),
+    /预算无效/
+  );
+});
+
 test("无效坐标会被拒绝", () => {
   assert.throws(
     () => validateMealRequest({ ...request, latitude: 190 }),
