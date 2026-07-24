@@ -20,6 +20,14 @@ test("边缘入口健康检查和静态资源回退可用", async () => {
   assert.equal(await asset.text(), "asset");
 });
 
+test("边缘入口没有资源绑定时返回404", async () => {
+  const response = await worker.fetch(
+    new Request("https://example.com/missing.txt"),
+    {}
+  );
+  assert.equal(response.status, 404);
+});
+
 test("边缘入口无Key时返回演示推荐", async () => {
   const response = await worker.fetch(
     new Request("https://example.com/api/recommendations", {

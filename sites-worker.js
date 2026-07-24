@@ -4,6 +4,9 @@ import {
   validateMealRequest,
 } from "./lib/recommendations.js";
 
+const STATIC_ASSETS =
+  typeof __STATIC_ASSETS__ === "undefined" ? null : __STATIC_ASSETS__;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -16,9 +19,32 @@ export default {
     if (url.pathname === "/api/geocode" && request.method === "POST") {
       return geocode(request, env);
     }
-    return env.ASSETS.fetch(request);
+    return serveAsset(request, env);
   },
 };
+
+function serveAsset(request, env) {
+  const url = new URL(request.url);
+  const path = url.pathname === "/" ? "/index.html" : url.pathname;
+  const embedded = STATIC_ASSETS?.[path];
+  if (embedded !== undefined) {
+    const extension = path.split(".").pop();
+    const types = {
+      html: "text/html; charset=utf-8",
+      css: "text/css; charset=utf-8",
+      js: "text/javascript; charset=utf-8",
+      json: "application/json; charset=utf-8",
+    };
+    return new Response(embedded, {
+      headers: {
+        "Content-Type": types[extension] || "application/octet-stream",
+        "Cache-Control": extension === "html" ? "no-cache" : "public, max-age=3600",
+      },
+    });
+  }
+  if (env.ASSETS?.fetch) return env.ASSETS.fetch(request);
+  return new Response("Not found", { status: 404 });
+}
 
 async function recommendations(request, env) {
   let input;
