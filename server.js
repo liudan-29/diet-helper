@@ -27,6 +27,9 @@ const server = createServer(async (request, response) => {
     if (request.method === "POST" && request.url === "/api/recommendations") {
       return await handleRecommendations(request, response);
     }
+    if (request.method === "POST" && request.url === "/api/geocode") {
+      return await handleGeocode(request, response);
+    }
     if (request.method === "GET" && request.url === "/api/health") {
       return sendJson(response, 200, {
         ok: true,
@@ -80,21 +83,99 @@ async function handleRecommendations(request, response) {
   }
 }
 
+async function handleGeocode(request, response) {
+  let body;
+  try {
+    body = await readJson(request);
+  } catch (error) {
+    return sendJson(response, 400, { error: error.message });
+  }
+  const address = String(body.address || "").trim();
+  if (!address || address.length > 80) {
+    return sendJson(response, 400, { error: "地点名称应为1至80个字符" });
+  }
+
+  const apiKey = process.env.AMAP_MCP_KEY?.trim();
+  if (!apiKey) {
+    return sendJson(response, 200, {
+      mode: "mock",
+      formattedAddress: `${address} · 演示坐标`,
+      longitude: 116.39747,
+      latitude: 39.908823,
+    });
+  }
+
+  try {
+    const endpoint = new URL("https://restapi.amap.com/v3/geocode/geo");
+    endpoint.searchParams.set("key", apiKey);
+    endpoint.searchParams.set("address", address);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    let geocodeResponse;
+    try {
+      geocodeResponse = await fetch(endpoint, { signal: controller.signal });
+    } finally {
+      clearTimeout(timeout);
+    }
+    if (!geocodeResponse.ok) throw new Error("高德地点解析请求失败");
+    const payload = await geocodeResponse.json();
+    const geocode = Array.isArray(payload.geocodes) ? payload.geocodes[0] : null;
+    const [longitude, latitude] = String(geocode?.location || "")
+      .split(",")
+      .map(Number);
+    if (
+      String(payload.status) !== "1" ||
+      !Number.isFinite(longitude) ||
+      !Number.isFinite(latitude)
+    ) {
+      return sendJson(response, 404, {
+        error: "没有找到这个地点，请补充城市或更具体的地址",
+        retryable: true,
+      });
+    }
+    return sendJson(response, 200, {
+      mode: "amap",
+      formattedAddress: String(geocode.formatted_address || address),
+      longitude,
+      latitude,
+    });
+  } catch (error) {
+    console.error("Geocode failed:", safeErrorMessage(error));
+    return sendJson(response, 502, {
+      error: error?.name === "AbortError" ? "地点解析超时" : "高德地点解析失败",
+      retryable: true,
+    });
+  }
+}
+
 function readJson(request) {
   return new Promise((resolve, reject) => {
     let body = "";
+    let settled = false;
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
     request.on("data", (chunk) => {
+      if (settled) return;
       body += chunk;
-      if (body.length > 100_000) reject(new Error("请求内容过大"));
-    });
-    request.on("end", () => {
-      try {
-        resolve(JSON.parse(body || "{}"));
-      } catch {
-        reject(new Error("请求格式无效"));
+      if (body.length > 100_000) {
+        body = "";
+        fail(new Error("请求内容过大"));
       }
     });
-    request.on("error", reject);
+    request.on("end", () => {
+      if (settled) return;
+      try {
+        const parsed = JSON.parse(body || "{}");
+        settled = true;
+        resolve(parsed);
+      } catch {
+        fail(new Error("请求格式无效"));
+      }
+    });
+    request.on("error", fail);
   });
 }
 

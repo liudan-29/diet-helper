@@ -48,6 +48,28 @@ test("服务端健康检查和演示推荐接口可用", async (context) => {
   assert.ok(payload.restaurants.length >= 3);
   assert.equal(payload.search.expanded, false);
   assert.equal(payload.search.usedRadius, 1000);
+
+  const geocodeResponse = await fetch(`http://localhost:${TEST_PORT}/api/geocode`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ address: "北京故宫" }),
+  });
+  const geocode = await geocodeResponse.json();
+  assert.equal(geocodeResponse.status, 200);
+  assert.equal(geocode.mode, "mock");
+  assert.equal(typeof geocode.longitude, "number");
+  assert.equal(typeof geocode.latitude, "number");
+  assert.match(geocode.formattedAddress, /演示坐标/);
+
+  const invalidGeocodeResponse = await fetch(
+    `http://localhost:${TEST_PORT}/api/geocode`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: "" }),
+    }
+  );
+  assert.equal(invalidGeocodeResponse.status, 400);
 });
 
 function waitForServer(child) {
