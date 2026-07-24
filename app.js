@@ -39,6 +39,7 @@ const elements = {
   resultCount: document.querySelector("#resultCount"),
   restaurantCard: document.querySelector("#restaurantCard"),
   cardVisual: document.querySelector("#cardVisual"),
+  restaurantPhoto: document.querySelector("#restaurantPhoto"),
   restaurantName: document.querySelector("#restaurantName"),
   restaurantMeta: document.querySelector("#restaurantMeta"),
   restaurantRating: document.querySelector("#restaurantRating"),
@@ -76,6 +77,7 @@ function renderRestaurant() {
     state.restaurants.length
   ).padStart(2, "0")}`;
   elements.cardVisual.style.background = visualGradient(item.category, state.index);
+  renderRestaurantPhoto(item);
   elements.restaurantName.textContent = item.name;
   elements.restaurantMeta.textContent = restaurantMeta(item);
   elements.restaurantRating.hidden = item.rating === null;
@@ -101,6 +103,40 @@ function renderRestaurant() {
     elements.restaurantCard.style.animation = "cardIn .45s ease both";
   });
   recordEvent("view", item.id);
+}
+
+function renderRestaurantPhoto(item) {
+  const photoUrl = safePhotoUrl(item.photos?.[0]);
+  elements.cardVisual.classList.remove("has-photo");
+  elements.restaurantPhoto.removeAttribute("src");
+  elements.restaurantPhoto.alt = "";
+  elements.restaurantPhoto.dataset.photoUrl = photoUrl;
+
+  if (!photoUrl) return;
+
+  elements.restaurantPhoto.onload = () => {
+    if (elements.restaurantPhoto.dataset.photoUrl !== photoUrl) return;
+    elements.cardVisual.classList.add("has-photo");
+  };
+  elements.restaurantPhoto.onerror = () => {
+    if (elements.restaurantPhoto.dataset.photoUrl !== photoUrl) return;
+    elements.cardVisual.classList.remove("has-photo");
+    elements.restaurantPhoto.removeAttribute("src");
+    elements.restaurantPhoto.alt = "";
+  };
+  elements.restaurantPhoto.alt = `${item.name}实景照片`;
+  elements.restaurantPhoto.src = photoUrl;
+}
+
+function safePhotoUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    if (!["http:", "https:"].includes(url.protocol)) return "";
+    if (url.protocol === "http:") url.protocol = "https:";
+    return url.toString();
+  } catch {
+    return "";
+  }
 }
 
 function restaurantMeta(item) {
