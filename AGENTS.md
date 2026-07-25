@@ -21,6 +21,7 @@ Meal Compass（饮食小助手）的免登录网页版。正式初版包含“�
 - `scripts/deploy-pages.ps1`只允许在`_site/`中建立临时git历史，默认目标为`mealcompass-web/mealcompass-web.github.io`，不得修改源码仓库remote。
 - 前端服务端请求统一经`lib/api.js`发出。源码`config.js`保持空`apiBase`供本地和Sites同源运行，Pages构建产物再注入Supabase函数地址。
 - Supabase函数使用`verify_jwt=false`提供免登录接口，CORS默认只允许`https://mealcompass-web.github.io`和本地开发来源；高德Key只从Supabase Secrets读取。
+- 饮食助手必须使用独立Supabase项目，不得复用双人打卡或其他产品的Supabase Project Ref。数据库、Edge Function、Secrets、日志和配额都按产品隔离。
 - Supabase函数复用项目根目录模块，部署必须使用CLI的`--use-api`打包方式；函数自己的`deno.json`负责锁定Deno运行时的MCP SDK依赖。
 - `app.js`只负责四入口编排、导航与模块生命周期；入口逻辑分别放在`lib/where-to-eat.js`、`lib/cooking-ui.js`、`lib/records-ui.js`和`lib/profile-ui.js`。
 - 结构化本地数据统一经`lib/local-store.js`读写；记录照片统一经`lib/photo-store.js`读写；做饭方案规则统一放在`lib/cooking-plans.js`。
@@ -60,6 +61,7 @@ Meal Compass（饮食小助手）的免登录网页版。正式初版包含“�
 - 连续范围不适合只靠滑杆精确填写；人均预算使用数字输入框，让用户直接输入金额，并在提交前处理空值和越界值。
 - Sites显示部署成功且电脑端返回200，不代表中国大陆手机网络和应用内浏览器一定可达。`chatgpt.site`前面有Cloudflare访问检查：真实Chrome的390像素移动端可正常打开，但无浏览器执行环境的直接GET可能收到403；发布验收要同时记录匿名浏览器、移动视口、不同User-Agent和直接HTTP结果，不能只报平台状态。
 - 遇到部署可达性问题时，先对照用户已有且已通过真机验证的项目架构，再推荐新平台。双人打卡项目采用GitHub Pages静态前端加Supabase后端，`github.io`已在用户微信中验证可访问；饮食助手若复用这条路径，必须把高德Key和`/api/recommendations`、`/api/geocode`迁到Supabase Edge Functions，禁止把服务端Key塞进GitHub Pages静态产物。
+- 复用另一个产品的部署架构，不等于复用它的Supabase项目。为省一次建项目而沿用旧Project Ref会混合数据库、函数、Secrets、日志和额度，部署前必须先创建本产品自己的Supabase项目。
 
 ## 产品范围护栏
 

@@ -74,6 +74,7 @@ https://github.com/liudan-29/diet-helper
 
 - 高德Key不得进入静态产物、源码提交、GitHub Pages仓库、浏览器响应或日志。
 - Supabase登录Token不得写入项目文件或聊天记录。
+- 饮食助手必须使用独立Supabase项目，不得与双人打卡或其他产品共用Project Ref。
 
 ## B2：五个必问
 

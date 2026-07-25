@@ -1,4 +1,4 @@
-project_id = "hwswkcwkqwmlujvctrax"
+project_id = "diet-helper"
 
 [functions.diet-helper]
 enabled = true

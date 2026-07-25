@@ -203,3 +203,9 @@
 
 - 将Pages与Supabase迁移源码提交并推送到`liudan-29/diet-helper`的`agent/meal-context-filters`分支。
 - 更新现有草稿PR#1，标题改为`完善饮食助手正式初版和公开部署`，正文补齐迁移内容、验证结果和线上待验收项。
+
+## 2026-07-25 15:54
+
+- 纠正Supabase项目边界：饮食助手不能复用双人打卡项目，旧Project Ref已从源码、配置、测试和部署文档中全部移除。
+- `supabase/config.toml`只保留本地项目名，线上部署改为显式传入饮食助手新项目自己的Project Ref；README和项目AGENTS加入按产品隔离数据库、函数、Secrets、日志和配额的强制规则。
+- Edge Function测试首次因Deno冷启动超过20秒超时，将测试等待上限调整为40秒后，目标测试和36项全量测试均通过。

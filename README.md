@@ -52,18 +52,21 @@ npm run check:amap
 - Supabase Edge Functions负责高德MCP推荐、POI图片和地点解析。
 - 高德Key只保存在Supabase Secrets，不进入Pages产物。
 
-首次部署前先登录Supabase，并通过仅保存在本机的环境文件设置Secret：
+饮食助手必须使用单独的Supabase项目，不能复用双人打卡或其他产品的项目。先在Supabase控制台新建项目，例如`meal-compass-diet-helper`，再复制这个新项目自己的Project Ref。首次部署时执行：
 
 ```powershell
 npx.cmd --yes supabase@latest login
-npx.cmd --yes supabase@latest secrets set --env-file .env --project-ref hwswkcwkqwmlujvctrax
-npx.cmd --yes supabase@latest functions deploy diet-helper --project-ref hwswkcwkqwmlujvctrax --use-api
+$env:DIET_HELPER_SUPABASE_REF="<饮食助手的新Project Ref>"
+npx.cmd --yes supabase@latest secrets set --env-file .env --project-ref $env:DIET_HELPER_SUPABASE_REF
+npx.cmd --yes supabase@latest functions deploy diet-helper --project-ref $env:DIET_HELPER_SUPABASE_REF --use-api
 ```
+
+这个Supabase项目只归饮食助手使用。当前版本的个人资料、收藏和饮食记录仍保存在用户自己的浏览器中；单独建项目主要隔离Edge Function、Key、日志、配额，并给后续独立数据库留出边界。
 
 GitHub组织`mealcompass-web`和公开仓库`mealcompass-web.github.io`建立后，执行：
 
 ```powershell
-$env:DIET_HELPER_API_BASE="https://hwswkcwkqwmlujvctrax.supabase.co/functions/v1/diet-helper"
+$env:DIET_HELPER_API_BASE="https://$($env:DIET_HELPER_SUPABASE_REF).supabase.co/functions/v1/diet-helper"
 powershell -ExecutionPolicy Bypass -File scripts/deploy-pages.ps1
 ```
 

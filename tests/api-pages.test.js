@@ -50,7 +50,7 @@ test("Pages构建要求HTTPS API地址并生成完整静态产物", async () => 
   );
 
   const apiBase =
-    "https://hwswkcwkqwmlujvctrax.supabase.co/functions/v1/diet-helper";
+    "https://diet-helper-test.supabase.co/functions/v1/diet-helper";
   const built = runBuild({ DIET_HELPER_API_BASE: `${apiBase}/` });
   assert.equal(built.status, 0, built.stderr);
 

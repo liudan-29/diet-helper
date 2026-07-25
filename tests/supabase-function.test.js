@@ -120,7 +120,7 @@ async function waitForFunction(child) {
   child.stderr.on("data", (chunk) => {
     stderr += chunk;
   });
-  const deadline = Date.now() + 20_000;
+  const deadline = Date.now() + 40_000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null) {
       throw new Error(`Edge Function启动失败：${stderr}`);
