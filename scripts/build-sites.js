@@ -17,6 +17,8 @@ const clientFiles = [
   "index.html",
   "styles.css",
   "app.js",
+  "config.js",
+  "api.js",
   "cooking-plans.js",
   "cooking-ui.js",
   "local-store.js",
@@ -28,10 +30,10 @@ const clientFiles = [
 ];
 const staticAssets = {};
 for (const file of clientFiles) {
-  const sourcePath = ["index.html", "styles.css", "app.js"].includes(file)
+  const sourcePath = ["index.html", "styles.css", "app.js", "config.js"].includes(file)
     ? resolve(projectRoot, file)
     : resolve(projectRoot, "lib", file);
-  const publicPath = ["index.html", "styles.css", "app.js"].includes(file)
+  const publicPath = ["index.html", "styles.css", "app.js", "config.js"].includes(file)
     ? `/${file}`
     : `/lib/${file}`;
   staticAssets[publicPath] = await readFile(sourcePath, "utf8");

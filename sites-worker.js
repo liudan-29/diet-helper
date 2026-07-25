@@ -67,7 +67,7 @@ async function recommendations(request, env) {
             targetCount: 3,
           },
         };
-    return json({ ...result, mode: apiKey ? "amap" : "mock" });
+    return json({ ...result, mode: apiKey ? "amap-mcp" : "mock" });
   } catch (error) {
     console.error("Amap query failed:", safeErrorMessage(error));
     return json({ error: publicQueryError(error) }, 502);
@@ -89,7 +89,9 @@ async function geocode(request, env) {
   if (!apiKey) {
     return json({
       mode: "mock",
-      location: { longitude: 116.397428, latitude: 39.90923, label: address },
+      formattedAddress: `${address} · 演示坐标`,
+      longitude: 116.397428,
+      latitude: 39.90923,
     });
   }
   try {
@@ -105,11 +107,9 @@ async function geocode(request, env) {
     }
     return json({
       mode: "amap",
-      location: {
-        longitude,
-        latitude,
-        label: first.formatted_address || address,
-      },
+      formattedAddress: first.formatted_address || address,
+      longitude,
+      latitude,
     });
   } catch (error) {
     console.error("Amap geocode failed:", safeErrorMessage(error));

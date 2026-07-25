@@ -2,7 +2,7 @@
 
 ## 项目定位
 
-饮食小助手的免登录网页版。正式初版包含“去哪吃”“自己做”“记一笔”“我的”四个入口；高德 MCP 负责真实餐厅与导航数据，高德 Web 服务负责地点解析和 POI 图集，本地规则库负责做饭方案。
+Meal Compass（饮食小助手）的免登录网页版。正式初版包含“去哪吃”“自己做”“记一笔”“我的”四个入口；高德MCP负责真实餐厅与导航数据，高德Web服务负责地点解析和POI图集，本地规则库负责做饭方案。
 
 ## 当前范围
 
@@ -15,8 +15,13 @@
 
 - Node.js最低版本为20，使用ES Module。
 - `server.js`负责静态资源和API；高德MCP客户端位于`lib/amap-mcp.js`；筛选排序位于`lib/recommendations.js`。
-- 本地运行使用`server.js`；公开托管使用`sites-worker.js`。两套入口必须共用`lib/amap-mcp.js`和`lib/recommendations.js`，不得复制筛选规则形成两套结果。
+- 本地运行使用`server.js`；GitHub Pages的服务端使用`supabase/functions/diet-helper/index.ts`；原Sites回退入口使用`sites-worker.js`。三套入口必须共用`lib/amap-mcp.js`和`lib/recommendations.js`，不得复制筛选规则形成多套结果。
 - `scripts/build-sites.js`生成`dist/`静态资源和边缘函数包；`dist/`是构建产物，不提交仓库。
+- `scripts/build-pages.js`生成`_site/`静态资源并通过`DIET_HELPER_API_BASE`写入公开接口地址；`_site/`是构建产物，不提交仓库。缺少或使用非HTTPS接口地址时必须拒绝构建。
+- `scripts/deploy-pages.ps1`只允许在`_site/`中建立临时git历史，默认目标为`mealcompass-web/mealcompass-web.github.io`，不得修改源码仓库remote。
+- 前端服务端请求统一经`lib/api.js`发出。源码`config.js`保持空`apiBase`供本地和Sites同源运行，Pages构建产物再注入Supabase函数地址。
+- Supabase函数使用`verify_jwt=false`提供免登录接口，CORS默认只允许`https://mealcompass-web.github.io`和本地开发来源；高德Key只从Supabase Secrets读取。
+- Supabase函数复用项目根目录模块，部署必须使用CLI的`--use-api`打包方式；函数自己的`deno.json`负责锁定Deno运行时的MCP SDK依赖。
 - `app.js`只负责四入口编排、导航与模块生命周期；入口逻辑分别放在`lib/where-to-eat.js`、`lib/cooking-ui.js`、`lib/records-ui.js`和`lib/profile-ui.js`。
 - 结构化本地数据统一经`lib/local-store.js`读写；记录照片统一经`lib/photo-store.js`读写；做饭方案规则统一放在`lib/cooking-plans.js`。
 - 前端动态HTML必须经过`lib/ui.js`中的转义函数处理，不得直接拼接未经转义的用户输入。
@@ -40,7 +45,7 @@
 - 用餐需求历史最多保留最近50条；“我的”只展示摘要时必须明确显示范围，不能让用户误以为更早记录已丢失。
 - 高德MCP在Windows下完成多次调用后可能已自行关闭Streamable HTTP连接；成功批次不要再次强制关闭，否则SDK会把成功查询误报为`Connection closed`。
 - 真实接入验证使用`npm run check:amap`，验证脚本不得输出Key。
-- 运行测试使用`npm test`，启动使用`npm start`。
+- 运行测试使用`npm test`，启动使用`npm start`。Edge Function需通过`npx.cmd --yes deno check --config=supabase/functions/diet-helper/deno.json supabase/functions/diet-helper/index.ts`检查。
 - 向用户提供`localhost`地址前，必须先确认对应端口正在监听且首页返回200；本地服务退出后，该地址会立即失效。
 
 ## 历次踩坑
@@ -54,6 +59,7 @@
 - 本地HTTP页面能够显示的远程图片，不代表HTTPS部署后也能显示；高德详情返回的自有HTTP图片地址必须在服务端规范为HTTPS。
 - 连续范围不适合只靠滑杆精确填写；人均预算使用数字输入框，让用户直接输入金额，并在提交前处理空值和越界值。
 - Sites显示部署成功且电脑端返回200，不代表中国大陆手机网络和应用内浏览器一定可达。`chatgpt.site`前面有Cloudflare访问检查：真实Chrome的390像素移动端可正常打开，但无浏览器执行环境的直接GET可能收到403；发布验收要同时记录匿名浏览器、移动视口、不同User-Agent和直接HTTP结果，不能只报平台状态。
+- 遇到部署可达性问题时，先对照用户已有且已通过真机验证的项目架构，再推荐新平台。双人打卡项目采用GitHub Pages静态前端加Supabase后端，`github.io`已在用户微信中验证可访问；饮食助手若复用这条路径，必须把高德Key和`/api/recommendations`、`/api/geocode`迁到Supabase Edge Functions，禁止把服务端Key塞进GitHub Pages静态产物。
 
 ## 产品范围护栏
 

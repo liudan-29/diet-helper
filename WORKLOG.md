@@ -170,3 +170,31 @@
 - 用户提供微信内置浏览器截图，页面明确显示`Attention Required | Cloudflare`和`you have been blocked`，确认拦截发生在`chatgpt.site`的Cloudflare安全层。
 - Sites后台仍为公开访问；对应被拦截请求没有进入应用Worker日志，因此前端代码、接口和站点公开权限都无法在应用层修复这次拦截。
 - 当前Sites连接器不提供WAF、Bot Management或Browser Integrity Check开关。可行路径是绑定自有域名后复测，或迁移到可自行控制安全规则、面向目标用户网络的托管平台。
+## 2026-07-25 00:20
+
+- 对照检查`liudan-29/shared-checkin`后确认：双人打卡能在微信打开，是因为页面部署在GitHub Pages的`github.io`域名，数据服务由Supabase承担；饮食助手当前被拦的是`chatgpt.site`前面的Cloudflare访问检查。
+- 饮食助手不能原样迁入纯静态GitHub Pages，因为高德Key和推荐、地点解析接口必须留在服务端。可复用已验证架构：GitHub Pages承载页面，Supabase Edge Functions承载高德MCP、POI和地理编码接口，并通过Supabase Secrets保管Key。
+
+## 2026-07-25 00:29
+
+- 梳理对外品牌网址方案：不修改`liudan-29`个人账号，避免影响双人打卡等已有仓库；可新建中性品牌GitHub组织及其`<organization>.github.io`部署仓库，让公开网址不出现个人拼音。
+- 源码仓库仍可由个人账号维护，部署产物单独推送到品牌组织的Pages仓库。若以后购买自有域名，还可以让地址栏只显示品牌域名，GitHub Pages继续作为底层托管。
+
+## 2026-07-25 10:27
+
+- 完成GitHub Pages加Supabase迁移的开发前AC，覆盖Pages静态构建、Edge Function路由、CORS、密钥隔离、失败回退和微信真机验收，文档位于`docs/pm-20260725-pages-supabase-migration-ac.md`。
+- 使用Deno2.9直接导入现有高德MCP客户端并完成真实查询，返回6家餐厅，确认`@modelcontextprotocol/sdk`和当前业务模块可在Deno环境运行；验证过程只输出数量与搜索范围，没有输出Key。
+- GitHub目标组织名调整为当前未被占用的`mealcompass-web`。Supabase CLI尚未登录，线上函数部署等待账号授权，本地改造继续。
+
+## 2026-07-25 10:38
+
+- 完成本地迁移实现：新增Supabase Edge Function、统一API地址模块、Pages构建与隔离部署脚本；品牌标题改为`Meal Compass · 饮食小助手`，保留Node和Sites回退入口。
+- 本体补充API寻址、Pages构建、Edge Function路由、CORS、超大请求和演示模式测试。`npm test`共35项全部通过，Sites与Pages构建、Deno类型检查、PowerShell脚本解析和`git diff --check`通过。
+- 使用真实高德Key做只返回布尔结果的安全扫描，已跟踪源码和`_site/`Pages产物均未发现Key。README和项目AGENTS已同步新的部署方式、关键文件和密钥约束。
+
+## 2026-07-25 10:52
+
+- 根据代码审查补齐Supabase函数自己的`deno.json`，锁定MCP SDK版本；部署固定使用`--use-api`，允许复用项目根目录的业务模块。
+- 修复Sites回退入口与前端不一致的地点解析结构和推荐模式字段，新增回归测试。
+- 全量测试增至36项并全部通过，Edge Function已在独立Deno配置下真实启动；源码和Pages产物再次扫描，均未发现高德Key。
+- 公开匿名接口的持久化限流仍属于后续路线图，README已明确CORS不是身份验证，发布后需要关注Supabase与高德配额。

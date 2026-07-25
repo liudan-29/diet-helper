@@ -1,4 +1,4 @@
-# 饮食小助手
+# Meal Compass · 饮食小助手
 
 ## 这是干嘛的
 
@@ -11,7 +11,9 @@
 
 餐厅与地点数据来自高德，做饭方案不调用大模型。个人资料、收藏、历史和记录保存在当前浏览器中，不需要注册账号，也不会自动同步到其他设备。
 
-公开体验地址：<https://liudan-diet-helper.dan351379.chatgpt.site>
+目标公开地址：<https://mealcompass-web.github.io/>（首次Pages发布后生效）
+
+迁移期回退地址：<https://liudan-diet-helper.dan351379.chatgpt.site>。这个地址在部分微信内置浏览器中会被Cloudflare拦截，不再作为主要分享入口。
 
 ## 怎么跑
 
@@ -42,17 +44,43 @@ npm run check:amap
 
 这个命令只输出连接结果和餐厅摘要，不会输出Key。
 
-公开托管使用边缘函数版本，构建命令为：
+## 公开部署
+
+主要公开入口采用GitHub Pages静态页面加Supabase Edge Functions服务端：
+
+- GitHub Pages负责页面，对外品牌网址不包含个人姓名。
+- Supabase Edge Functions负责高德MCP推荐、POI图片和地点解析。
+- 高德Key只保存在Supabase Secrets，不进入Pages产物。
+
+首次部署前先登录Supabase，并通过仅保存在本机的环境文件设置Secret：
+
+```powershell
+npx.cmd --yes supabase@latest login
+npx.cmd --yes supabase@latest secrets set --env-file .env --project-ref hwswkcwkqwmlujvctrax
+npx.cmd --yes supabase@latest functions deploy diet-helper --project-ref hwswkcwkqwmlujvctrax --use-api
+```
+
+GitHub组织`mealcompass-web`和公开仓库`mealcompass-web.github.io`建立后，执行：
+
+```powershell
+$env:DIET_HELPER_API_BASE="https://hwswkcwkqwmlujvctrax.supabase.co/functions/v1/diet-helper"
+powershell -ExecutionPolicy Bypass -File scripts/deploy-pages.ps1
+```
+
+`npm run build:pages`只生成项目内`_site/`静态产物。`scripts/deploy-pages.ps1`在`_site/`中建立独立git历史并推送Pages仓库，不修改源码仓库的`origin`。
+
+原Sites版本继续保留为回退入口：
 
 ```powershell
 npm run build
 ```
 
-构建产物写入`dist/`：网页静态资源由托管平台直接分发，`sites-worker.js`处理推荐、地点解析和健康检查接口。它与本地`server.js`共用高德查询和筛选模块。
+这个命令生成`dist/`静态资源和边缘函数包，`sites-worker.js`继续处理同源接口。三种服务端入口共用`lib/amap-mcp.js`和`lib/recommendations.js`。
 
 ## 备注
 
 - 当前已包含Node服务端、四入口网页端、本地数据仓库、照片仓库、做饭规则库、餐厅筛选排序与高德MCP客户端。
+- 前端通过`lib/api.js`统一确定接口地址：本地和Sites使用同源`/api/*`，Pages使用构建时写入`config.js`的Supabase函数地址。
 - 周边搜索后会继续查询餐厅详情，以补齐坐标、评分、人均价格和营业时间；同店照片先使用MCP首图作为头图候选，再接高德Web服务POI详情图集并去重，详情接口失败时使用MCP照片兜底。
 - 一家餐厅有多张照片时，页面会同时预加载这些高德实景图，可以点击左右箭头、分页条或在手机上左右滑动切换；高德自有图片地址会统一使用HTTPS。只有一张时不显示轮播控件，照片缺失或加载失败时使用不计入图集的渐变占位图。
 - 高德照片接口没有可靠的门头、环境、菜品类型字段，页面只展示真实返回的照片，不强行补齐或标注照片类别。
@@ -61,5 +89,7 @@ npm run build
 - 做饭方案来自项目内置的规则库，只提供日常决策参考；遇到过敏、疾病、特殊营养需求或食材安全问题，应以专业意见和实际食材情况为准。
 - 浏览器结构化数据保存在`localStorage`，饮食记录照片保存在`IndexedDB`。清理浏览器数据会删除这些内容，当前版本不提供跨设备同步。
 - 高德和模型服务密钥仅配置在本地 `.env` 文件或部署平台环境变量中，不能提交到仓库。
+- GitHub Pages与Supabase迁移验收标准见`docs/pm-20260725-pages-supabase-migration-ac.md`。
+- 当前公开接口依靠CORS、输入校验和请求上限减少误用，但CORS不是身份验证。持久化限流和用量后台仍在后续路线图中，发布后需要关注Supabase与高德配额。
 - 第一版不做原生 APP、微信小程序、支付、社交和医疗建议。
 - 正式初版的产品结构见`docs/pm-20260724-diet-helper-v1-structure.md`，逐项验收标准见`docs/pm-20260724-diet-helper-v1-ac.md`；更长期的功能与暂缓原因见`docs/product-roadmap.md`。

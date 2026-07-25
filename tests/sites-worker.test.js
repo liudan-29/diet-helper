@@ -53,3 +53,21 @@ test("边缘入口无Key时返回演示推荐", async () => {
   assert.equal(payload.mode, "mock");
   assert.ok(payload.restaurants.length >= 1);
 });
+
+test("边缘入口地点解析与前端使用同一响应契约", async () => {
+  const response = await worker.fetch(
+    new Request("https://example.com/api/geocode", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ address: "北京故宫" }),
+    }),
+    env
+  );
+  const payload = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(payload.mode, "mock");
+  assert.equal(payload.formattedAddress, "北京故宫 · 演示坐标");
+  assert.equal(typeof payload.longitude, "number");
+  assert.equal(typeof payload.latitude, "number");
+  assert.equal("location" in payload, false);
+});
