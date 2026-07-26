@@ -1,4 +1,7 @@
-import { searchAmapRestaurants } from "../../../lib/amap-mcp.js";
+import {
+  searchAmapRestaurants,
+  searchAmapWebRestaurants,
+} from "../../../lib/amap-mcp.js";
 import {
   createMockRestaurants,
   validateMealRequest,
@@ -6,7 +9,8 @@ import {
 
 const MAX_BODY_BYTES = 100_000;
 const GEOCODE_TIMEOUT_MS = 8_000;
-const RECOMMENDATION_TIMEOUT_MS = 25_000;
+const MCP_PRIMARY_TIMEOUT_MS = 6_500;
+const WEB_FALLBACK_TIMEOUT_MS = 15_000;
 const DEFAULT_ALLOWED_ORIGINS = [
   "https://mealcompass-web.github.io",
   "http://localhost:4173",
@@ -74,24 +78,23 @@ async function recommendations(request: Request): Promise<Response> {
 
   const apiKey = Deno.env.get("AMAP_MCP_KEY")?.trim();
   try {
-    const result = apiKey
-      ? await withTimeout(
-          searchAmapRestaurants(input, apiKey),
-          RECOMMENDATION_TIMEOUT_MS,
-          "高德MCP查询超时",
-        )
+    const { result, mode } = apiKey
+      ? await searchRealRestaurants(input, apiKey)
       : {
-          restaurants: createMockRestaurants(input),
-          search: {
-            requestedRadius: input.radius,
-            usedRadius: input.radius,
-            expanded: false,
-            attempts: 0,
-            targetCount: 3,
+          result: {
+            restaurants: createMockRestaurants(input),
+            search: {
+              requestedRadius: input.radius,
+              usedRadius: input.radius,
+              expanded: false,
+              attempts: 0,
+              targetCount: 3,
+            },
           },
+          mode: "mock",
         };
     return json({
-      mode: apiKey ? "amap-mcp" : "mock",
+      mode,
       request: input,
       restaurants: result.restaurants,
       count: result.restaurants.length,
@@ -103,6 +106,32 @@ async function recommendations(request: Request): Promise<Response> {
       error: publicQueryError(error),
       retryable: true,
     }, 502);
+  }
+}
+
+async function searchRealRestaurants(input: unknown, apiKey: string) {
+  try {
+    return {
+      result: await withTimeout(
+        searchAmapRestaurants(input, apiKey),
+        MCP_PRIMARY_TIMEOUT_MS,
+        "高德MCP查询超时",
+      ),
+      mode: "amap-mcp",
+    };
+  } catch (mcpError) {
+    console.warn(
+      "Amap MCP unavailable, using Web API fallback:",
+      safeErrorMessage(mcpError),
+    );
+    return {
+      result: await withTimeout(
+        searchAmapWebRestaurants(input, apiKey),
+        WEB_FALLBACK_TIMEOUT_MS,
+        "高德Web服务查询超时",
+      ),
+      mode: "amap-web-fallback",
+    };
   }
 }
 

@@ -3,4 +3,5 @@
 node_modules/
 dist/
 _site/
+supabase/.temp/
 .DS_Store

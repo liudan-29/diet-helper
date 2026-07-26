@@ -2,13 +2,11 @@ $ErrorActionPreference = "Stop"
 
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot ".."))
 $siteRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot "_site"))
-$siteRelative = [IO.Path]::GetRelativePath($projectRoot, $siteRoot)
-if (
-  [string]::IsNullOrWhiteSpace($siteRelative) -or
-  $siteRelative -eq "." -or
-  $siteRelative.StartsWith("..") -or
-  [IO.Path]::IsPathRooted($siteRelative)
-) {
+$projectPrefix = $projectRoot.TrimEnd([char]'\') + '\'
+if (-not $siteRoot.StartsWith(
+  $projectPrefix,
+  [StringComparison]::OrdinalIgnoreCase
+)) {
   throw "Pages output directory is outside the project"
 }
 

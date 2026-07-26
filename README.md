@@ -11,7 +11,7 @@
 
 餐厅与地点数据来自高德，做饭方案不调用大模型。个人资料、收藏、历史和记录保存在当前浏览器中，不需要注册账号，也不会自动同步到其他设备。
 
-目标公开地址：<https://mealcompass-web.github.io/>（首次Pages发布后生效）
+当前公开地址：<https://mealcompass-web.github.io/>
 
 迁移期回退地址：<https://liudan-diet-helper.dan351379.chatgpt.site>。这个地址在部分微信内置浏览器中会被Cloudflare拦截，不再作为主要分享入口。
 
@@ -32,7 +32,7 @@ npm start
 AMAP_MCP_KEY=你的Key
 ```
 
-没有配置Key时，项目自动使用演示餐厅数据；配置后，服务端通过高德MCP周边搜索查询真实餐厅，手动填写的地点也由服务端调用高德地理编码解析。首次筛选不足5家时，会自动更换关键词并将范围逐步扩大到2公里、3公里，合并去重后最多返回8家；餐次、场合和预算等硬性条件不会为了凑数量而放宽。
+没有配置Key时，项目自动使用演示餐厅数据；配置后，服务端优先通过高德MCP周边搜索查询真实餐厅。Supabase运行环境无法及时连接MCP时，会自动改用同一个高德Key的Web服务v5周边搜索，不会退回虚构餐厅。手动填写的地点由服务端调用高德地理编码解析。首次筛选不足5家时，会自动更换关键词并将范围逐步扩大到2公里、3公里，合并去重后最多返回8家；餐次、场合和预算等硬性条件不会为了凑数量而放宽。
 
 推荐先检查餐厅营业时间是否覆盖用户选择的餐次。午餐默认按11:00至14:30判断，早餐专营店或只在早餐时段营业的餐厅不会进入午餐排序。营业时间缺失时，才使用餐厅名称、类别和当前营业状态兜底。
 
@@ -49,7 +49,7 @@ npm run check:amap
 主要公开入口采用GitHub Pages静态页面加Supabase Edge Functions服务端：
 
 - GitHub Pages负责页面，对外品牌网址不包含个人姓名。
-- Supabase Edge Functions负责高德MCP推荐、POI图片和地点解析。
+- Supabase Edge Functions负责高德MCP推荐、Web服务自动兜底、POI图片和地点解析。
 - 高德Key只保存在Supabase Secrets，不进入Pages产物。
 
 饮食助手必须使用单独的Supabase项目，不能复用双人打卡或其他产品的项目。先在Supabase控制台新建项目，例如`meal-compass-diet-helper`，再复制这个新项目自己的Project Ref。首次部署时执行：
@@ -62,6 +62,8 @@ npx.cmd --yes supabase@latest functions deploy diet-helper --project-ref $env:DI
 ```
 
 这个Supabase项目只归饮食助手使用。当前版本的个人资料、收藏和饮食记录仍保存在用户自己的浏览器中；单独建项目主要隔离Edge Function、Key、日志、配额，并给后续独立数据库留出边界。
+
+当前生产项目是`meal-compass-diet-helper`，Project Ref为`bkslggnsgjajefhcyria`，区域为东京`ap-northeast-1`。
 
 GitHub组织`mealcompass-web`和公开仓库`mealcompass-web.github.io`建立后，执行：
 
@@ -84,7 +86,7 @@ npm run build
 
 - 当前已包含Node服务端、四入口网页端、本地数据仓库、照片仓库、做饭规则库、餐厅筛选排序与高德MCP客户端。
 - 前端通过`lib/api.js`统一确定接口地址：本地和Sites使用同源`/api/*`，Pages使用构建时写入`config.js`的Supabase函数地址。
-- 周边搜索后会继续查询餐厅详情，以补齐坐标、评分、人均价格和营业时间；同店照片先使用MCP首图作为头图候选，再接高德Web服务POI详情图集并去重，详情接口失败时使用MCP照片兜底。
+- MCP周边搜索后会继续查询餐厅详情，以补齐坐标、评分、人均价格和营业时间；同店照片先使用MCP首图作为头图候选，再接高德Web服务POI详情图集并去重。Web服务兜底直接请求`business,photos`字段，再用POI详情补图。详情接口失败时保留周边搜索已经返回的真实照片。
 - 一家餐厅有多张照片时，页面会同时预加载这些高德实景图，可以点击左右箭头、分页条或在手机上左右滑动切换；高德自有图片地址会统一使用HTTPS。只有一张时不显示轮播控件，照片缺失或加载失败时使用不计入图集的渐变占位图。
 - 高德照片接口没有可靠的门头、环境、菜品类型字段，页面只展示真实返回的照片，不强行补齐或标注照片类别。
 - 场合使用预设加自定义输入；同行人数直接填写；口味支持多选。其他要求可以识别面馆、火锅、烤肉等餐厅类型，菜品级忌口、过敏和医疗要求仍需向餐厅确认。

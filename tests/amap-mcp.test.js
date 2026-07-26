@@ -5,6 +5,7 @@ import {
   buildCandidateSearchPlans,
   collectRestaurantCandidates,
   fetchAmapPhotoDetails,
+  searchAmapWebRestaurants,
   selectRestaurantPhotos,
 } from "../lib/amap-mcp.js";
 
@@ -150,6 +151,62 @@ test("照片详情接口按POI ID批量查询", async () => {
   assert.equal(requestedUrl.searchParams.get("id"), "p1|p2");
   assert.equal(requestedUrl.searchParams.get("show_fields"), "photos");
   assert.equal(result.length, 1);
+});
+
+test("高德Web服务兜底使用周边搜索并返回真实POI图集", async () => {
+  const requestedUrls = [];
+  const aroundPois = Array.from({ length: 5 }, (_, index) => ({
+    ...poi(`web-${index}`, 0.001 + index * 0.001),
+    business: {
+      rating: "4.6",
+      cost: "28",
+      business_status: "1",
+      opentime_today: "06:00-22:00",
+    },
+    photos: [{ url: `https://img.test/web-${index}-cover.jpg` }],
+  }));
+  const result = await searchAmapWebRestaurants(
+    request,
+    "test-key",
+    async (url) => {
+      requestedUrls.push(new URL(url));
+      if (url.pathname.endsWith("/around")) {
+        return {
+          ok: true,
+          json: async () => ({
+            status: "1",
+            pois: aroundPois,
+          }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({
+          status: "1",
+          pois: [
+            {
+              id: "web-0",
+              photos: [
+                { url: "https://img.test/web-0-cover.jpg" },
+                { url: "https://img.test/web-0-dish.jpg" },
+              ],
+            },
+          ],
+        }),
+      };
+    }
+  );
+
+  const aroundUrl = requestedUrls.find((url) => url.pathname.endsWith("/around"));
+  assert.equal(aroundUrl.searchParams.get("types"), "050000");
+  assert.equal(aroundUrl.searchParams.get("show_fields"), "business,photos");
+  assert.equal(aroundUrl.searchParams.get("page_size"), "25");
+  assert.equal(result.restaurants.length, 5);
+  assert.equal(result.restaurants[0].source, "amap");
+  assert.deepEqual(result.restaurants[0].photos, [
+    "https://img.test/web-0-cover.jpg",
+    "https://img.test/web-0-dish.jpg",
+  ]);
 });
 
 function poi(id, longitudeDelta, overrides = {}) {

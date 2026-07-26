@@ -76,6 +76,34 @@ test("Pages构建要求HTTPS API地址并生成完整静态产物", async () => 
   assert.doesNotMatch(config, /\b[a-f0-9]{32}\b/i);
 });
 
+test("Pages部署脚本兼容Windows PowerShell 5路径检查", () => {
+  if (process.platform !== "win32") return;
+  const result = spawnSync(
+    "powershell",
+    [
+      "-NoProfile",
+      "-ExecutionPolicy",
+      "Bypass",
+      "-File",
+      "scripts/deploy-pages.ps1",
+    ],
+    {
+      cwd: new URL("..", import.meta.url),
+      env: {
+        ...process.env,
+        PAGES_REPOSITORY: "invalid",
+      },
+      encoding: "utf8",
+    },
+  );
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /PAGES_REPOSITORY/);
+  assert.doesNotMatch(
+    `${result.stdout}\n${result.stderr}`,
+    /GetRelativePath/,
+  );
+});
+
 function runBuild(extraEnv) {
   return spawnSync(process.execPath, ["scripts/build-pages.js"], {
     cwd: new URL("..", import.meta.url),

@@ -215,3 +215,12 @@
 - [仅本次会话相关，读者可跳过] 全局`AGENTS.md`已经迁到`.codex`，但5个被索引的规则文件仍只存在于旧`.claude`目录，导致任务preflight中断。
 - [仅本次会话相关，读者可跳过] 将缺失规则恢复到`C:\Users\刘丹\.codex\rules\`，其中3个文件按旧文件逐字复制并通过SHA256一致性校验。
 - 当前线上阻塞状态未变化：Supabase CLI尚未登录，独立饮食助手Supabase项目和`mealcompass-web`GitHub组织均未创建。
+
+## 2026-07-26 19:26
+
+- 确认并启用独立Supabase生产项目`meal-compass-diet-helper`，Project Ref为`bkslggnsgjajefhcyria`，区域为东京`ap-northeast-1`。高德Key只写入该项目的Secrets。
+- Supabase东京Edge环境调用高德MCP会超时。保留MCP首选路径，并新增高德Web服务v5周边搜索兜底；两条路径共用候选扩展、筛选、排序和POI图集规则。
+- 线上Edge Function重新部署后，健康检查返回200，真实推荐返回200、`amap-web-fallback`和8家餐厅；抽查第一家有3张高德实景图。
+- 建立并发布GitHub组织仓库`mealcompass-web/mealcompass-web.github.io`，公开地址为`https://mealcompass-web.github.io/`。普通请求和微信User-Agent请求均返回200。
+- 使用390×844手机视口完成真浏览器流程：解析北京王府井，选择晚餐、2人、人均100元，页面显示8家餐厅和每店3张真实照片，没有横向溢出。
+- 修复Pages部署脚本依赖Windows PowerShell 5不支持的`[IO.Path]::GetRelativePath`问题，并增加回归测试。全量39项测试、Deno类型检查和`git diff --check`均通过。
