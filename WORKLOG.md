@@ -224,3 +224,8 @@
 - 建立并发布GitHub组织仓库`mealcompass-web/mealcompass-web.github.io`，公开地址为`https://mealcompass-web.github.io/`。普通请求和微信User-Agent请求均返回200。
 - 使用390×844手机视口完成真浏览器流程：解析北京王府井，选择晚餐、2人、人均100元，页面显示8家餐厅和每店3张真实照片，没有横向溢出。
 - 修复Pages部署脚本依赖Windows PowerShell 5不支持的`[IO.Path]::GetRelativePath`问题，并增加回归测试。全量39项测试、Deno类型检查和`git diff --check`均通过。
+
+## 2026-07-26 19:31
+
+- 将线上修复和文档推送到`liudan-29/diet-helper`的`agent/meal-context-filters`分支，并更新草稿PR#1的验证结果和公开地址。
+- 撤销本次部署临时创建的Supabase访问令牌`diet-helper-cli`，本机Supabase CLI已退出登录；生产项目、函数和Secrets不受影响。
