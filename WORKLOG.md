@@ -209,3 +209,9 @@
 - 纠正Supabase项目边界：饮食助手不能复用双人打卡项目，旧Project Ref已从源码、配置、测试和部署文档中全部移除。
 - `supabase/config.toml`只保留本地项目名，线上部署改为显式传入饮食助手新项目自己的Project Ref；README和项目AGENTS加入按产品隔离数据库、函数、Secrets、日志和配额的强制规则。
 - Edge Function测试首次因Deno冷启动超过20秒超时，将测试等待上限调整为40秒后，目标测试和36项全量测试均通过。
+
+## 2026-07-26 11:03
+
+- [仅本次会话相关，读者可跳过] 全局`AGENTS.md`已经迁到`.codex`，但5个被索引的规则文件仍只存在于旧`.claude`目录，导致任务preflight中断。
+- [仅本次会话相关，读者可跳过] 将缺失规则恢复到`C:\Users\刘丹\.codex\rules\`，其中3个文件按旧文件逐字复制并通过SHA256一致性校验。
+- 当前线上阻塞状态未变化：Supabase CLI尚未登录，独立饮食助手Supabase项目和`mealcompass-web`GitHub组织均未创建。
