@@ -229,3 +229,9 @@
 
 - 将线上修复和文档推送到`liudan-29/diet-helper`的`agent/meal-context-filters`分支，并更新草稿PR#1的验证结果和公开地址。
 - 撤销本次部署临时创建的Supabase访问令牌`diet-helper-cli`，本机Supabase CLI已退出登录；生产项目、函数和Secrets不受影响。
+
+## 2026-07-26 22:03
+
+- 排查小米浏览器打不开：小米浏览器、MIUI WebView和Android Chrome User-Agent请求公开首页均返回200；饮食助手和双人打卡的GitHub Pages响应头一致，未发现服务器按浏览器拦截。
+- 当前Pages产物直接发布现代ES Module源码，包含可选链、`Object.fromEntries`和`structuredClone`；双人打卡由Next.js构建后发布。若小米浏览器表现为空白页，旧内核兼容性是首要嫌疑；若显示网络错误，则继续按手机网络、DNS或缓存方向排查。
+- 复核个人数据边界：Supabase目前只承载Edge Function和Secrets，不保存用户历史。资料、推荐历史、方案、记录和收藏保存在当前域名的`localStorage`，照片保存在IndexedDB；项目没有账号体系，也没有真正区分用户或跨设备恢复能力。
