@@ -1,0 +1,6 @@
+project_id = "diet-helper"
+
+[functions.diet-helper]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/diet-helper/index.ts"

@@ -12,7 +12,10 @@ const request = {
   longitude: 116.39747,
   locationLabel: "北京测试",
   mealPeriod: "午餐",
-  scene: "日常",
+  occasion: "日常",
+  partySize: 1,
+  tastePreferences: [],
+  customRequirement: "",
   budget: 80,
   radius: 1000,
 };

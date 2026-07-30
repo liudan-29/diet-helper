@@ -2,11 +2,12 @@
 
 ## 项目定位
 
-饮食小助手的网页版。第一版帮助用户按当前位置、餐次、场景和饮食偏好发现合适的附近餐厅；高德 MCP 负责真实地点与导航数据。
+Meal Compass（饮食小助手）的免登录网页版。正式初版包含“去哪吃”“自己做”“记一笔”“我的”四个入口；服务端优先通过高德MCP查询真实餐厅，MCP不可达时使用高德Web服务v5周边搜索兜底。高德Web服务同时负责地点解析和POI图集，本地规则库负责做饭方案。
 
 ## 当前范围
 
-- 先完成网页端“去哪吃”核心流程。
+- 正式初版覆盖餐厅推荐、做饭方案、饮食记录、个人偏好、常用地点、收藏和最近历史。
+- 用户数据默认只保存在当前浏览器，不做账号、云同步或跨设备同步。
 - 高德 MCP 与模型服务的真实凭证只放在环境变量中，禁止写入仓库。
 - 暂不做原生 APP、微信小程序、支付、社交和医疗建议。
 
@@ -14,15 +15,56 @@
 
 - Node.js最低版本为20，使用ES Module。
 - `server.js`负责静态资源和API；高德MCP客户端位于`lib/amap-mcp.js`；筛选排序位于`lib/recommendations.js`。
+- 本地运行使用`server.js`；GitHub Pages的服务端使用`supabase/functions/diet-helper/index.ts`；原Sites回退入口使用`sites-worker.js`。三套入口必须共用`lib/amap-mcp.js`和`lib/recommendations.js`，不得复制筛选规则形成多套结果。
+- `scripts/build-sites.js`生成`dist/`静态资源和边缘函数包；`dist/`是构建产物，不提交仓库。
+- `scripts/build-pages.js`生成`_site/`静态资源并通过`DIET_HELPER_API_BASE`写入公开接口地址；`_site/`是构建产物，不提交仓库。缺少或使用非HTTPS接口地址时必须拒绝构建。
+- `scripts/deploy-pages.ps1`只允许在`_site/`中建立临时git历史，默认目标为`mealcompass-web/mealcompass-web.github.io`，不得修改源码仓库remote。
+- 前端服务端请求统一经`lib/api.js`发出。源码`config.js`保持空`apiBase`供本地和Sites同源运行，Pages构建产物再注入Supabase函数地址。
+- Supabase函数使用`verify_jwt=false`提供免登录接口，CORS默认只允许`https://mealcompass-web.github.io`和本地开发来源；高德Key只从Supabase Secrets读取。
+- 饮食助手必须使用独立Supabase项目，不得复用双人打卡或其他产品的Supabase Project Ref。数据库、Edge Function、Secrets、日志和配额都按产品隔离。
+- Supabase函数复用项目根目录模块，部署必须使用CLI的`--use-api`打包方式；函数自己的`deno.json`负责锁定Deno运行时的MCP SDK依赖。
+- Supabase生产项目固定为`meal-compass-diet-helper`，Project Ref为`bkslggnsgjajefhcyria`，区域为`ap-northeast-1`。MCP查询超过6.5秒时自动改用高德Web服务v5周边搜索，返回模式为`amap-web-fallback`；前端必须将所有`amap*`模式识别为真实高德数据。
+- `app.js`只负责四入口编排、导航与模块生命周期；入口逻辑分别放在`lib/where-to-eat.js`、`lib/cooking-ui.js`、`lib/records-ui.js`和`lib/profile-ui.js`。
+- 结构化本地数据统一经`lib/local-store.js`读写；记录照片统一经`lib/photo-store.js`读写；做饭方案规则统一放在`lib/cooking-plans.js`。
+- 前端动态HTML必须经过`lib/ui.js`中的转义函数处理，不得直接拼接未经转义的用户输入。
 - 前端不得持有或输出高德Key。
-- 高德详情中的`photo`或`photos`必须标准化为`photos`数组；前端优先展示第一张真实照片，只有无图或加载失败时才使用渐变占位图。
-- 未配置`AMAP_MCP_KEY`时使用演示数据；配置后自动切换到高德MCP。
+- 高德MCP详情中的`photo`或`photos`必须标准化为`photos`数组；MCP通常只返回首图。推荐完成后用高德Web服务v5的POI ID详情接口批量查询`photos`。MCP首图作为头图候选放在详情图集前面，URL重复时去重；详情接口失败或没有照片时使用MCP照片兜底。
+- 高德自有图片域名偶尔返回HTTP地址；服务端必须将`amap.com`和`autonavi.com`下的照片地址规范为HTTPS，避免正式站点出现混合内容拦截。
+- 同店多图使用左右按钮、分页条和手机横向滑动切换；浏览器必须并行预加载同店照片，切换时等目标图加载完成再替换当前图。只有1张照片时必须隐藏轮播控件，不能展示不可操作的假分页条。无图或加载失败时使用渐变占位图，但占位图不能计入照片总数。
+- 未配置`AMAP_MCP_KEY`时使用演示数据；配置后优先使用高德MCP，MCP不可达时自动切换到高德Web服务，不得退回虚构餐厅。
 - 高德MCP的`maps_around_search`可能只返回基础POI且没有坐标；标准化前必须用`maps_search_detail`补齐详情，不能直接把这些POI丢弃。
 - 首轮筛选不足5家时，用不同关键词补查2公里和3公里范围；合并后按高德POI ID去重，最多返回8家，不能放宽营业、餐次和预算硬条件凑数。
+- 用餐输入分为`occasion`、`partySize`、`tastePreferences`和`customRequirement`，禁止再把人数、口味混入单一`scene`字段。
+- 餐次是资格条件：早餐06:00至10:30、午餐11:00至14:30、晚餐17:00至21:00、夜宵21:00至次日02:00。餐厅营业时间不覆盖所选餐次时必须先排除，再执行距离、评分和偏好排序。
+- 餐厅营业时间可解析时，不得用“现在是否营业”代替“所选餐次是否营业”；营业时间缺失时才用餐厅类别、名称和当前营业状态兜底。
+- 自定义要求只对能够从餐厅名称或类别确认的类型生效；菜品级忌口、过敏和医疗要求不得声称已经筛除。
+- 人均预算使用数字输入框，前端允许0元至10000元，默认80元；服务端校验必须接受相同范围，禁止出现前端可填但提交后报错的范围不一致。
+- 做饭方案不得虚构精确营养或医疗结论；通用生食/凉拌规则只能匹配明确可安全生食的常见食材，肉蛋和未知食材不能套用。
+- `localStorage`中的数据带版本号。遇到未来版本、迁移失败或损坏数据时禁止用空仓库静默覆盖原数据，只有用户明确执行清除数据后才能重建。
+- IndexedDB照片新增、删除和清空必须等事务`complete`后才报告成功；`error`或`abort`必须向调用方抛错。
+- 记录删除采用软删除加10秒撤销。刷新后必须恢复未结束的撤销窗口，过期软删除必须完成记录与照片清理，不能永久遗留。
+- 连续选图、压缩、移除和保存必须用任务序号或等价机制隔离过期异步结果；压缩处理中禁止保存。
+- 用餐需求历史最多保留最近50条；“我的”只展示摘要时必须明确显示范围，不能让用户误以为更早记录已丢失。
 - 高德MCP在Windows下完成多次调用后可能已自行关闭Streamable HTTP连接；成功批次不要再次强制关闭，否则SDK会把成功查询误报为`Connection closed`。
 - 真实接入验证使用`npm run check:amap`，验证脚本不得输出Key。
-- 运行测试使用`npm test`，启动使用`npm start`。
+- 运行测试使用`npm test`，启动使用`npm start`。Edge Function需通过`npx.cmd --yes deno check --config=supabase/functions/diet-helper/deno.json supabase/functions/diet-helper/index.ts`检查。
 - 向用户提供`localhost`地址前，必须先确认对应端口正在监听且首页返回200；本地服务退出后，该地址会立即失效。
+
+## 历次踩坑
+
+- 派工必须遵循全局`sub_agent_dispatch.md`和已配置的英文Agent类型：`ui-designer`、`code-writer`、`code-reviewer`、`ux-reviewer`。不得把名称翻译成中文后当作新角色，也不得临时虚构“前端Agent”“自己做Agent”等不存在的Agent；产品拆解、任务调度、整合与测试由本体负责。
+- PowerShell变量名大小写不敏感，禁止使用`$home`等与只读系统变量`$HOME`冲突的名字；HTTP响应变量使用`$homeResponse`等任务专用名称。
+- 高德返回多个照片URL，不等于浏览器已经加载了多张照片。若用户切换后才请求下一张，加载期间露出的渐变占位会被误认为是假照片；应并行预加载全部有效URL、明确标注照片来源，并在目标图就绪前保留当前实景图。
+- 范围控件的最小值不能只改前端；预算滑杆下限、服务端校验和自动化测试必须同步，否则用户能选中的值可能无法提交。
+- 高德POI详情照片只有`title`和`url`，不提供可靠的门头、环境、菜品类型；实际餐厅的`title`还可能为空。不能承诺图集固定覆盖各种类型，也不能为照片虚构分类标签。
+- 单独使用Web POI详情图集可能全部是菜品图。为了增加照片区分度，保留同一POI的MCP首图作为头图候选，再接Web详情图集并按URL去重。
+- 本地HTTP页面能够显示的远程图片，不代表HTTPS部署后也能显示；高德详情返回的自有HTTP图片地址必须在服务端规范为HTTPS。
+- 连续范围不适合只靠滑杆精确填写；人均预算使用数字输入框，让用户直接输入金额，并在提交前处理空值和越界值。
+- Sites显示部署成功且电脑端返回200，不代表中国大陆手机网络和应用内浏览器一定可达。`chatgpt.site`前面有Cloudflare访问检查：真实Chrome的390像素移动端可正常打开，但无浏览器执行环境的直接GET可能收到403；发布验收要同时记录匿名浏览器、移动视口、不同User-Agent和直接HTTP结果，不能只报平台状态。
+- 遇到部署可达性问题时，先对照用户已有且已通过真机验证的项目架构，再推荐新平台。双人打卡项目采用GitHub Pages静态前端加Supabase后端，`github.io`已在用户微信中验证可访问；饮食助手若复用这条路径，必须把高德Key和`/api/recommendations`、`/api/geocode`迁到Supabase Edge Functions，禁止把服务端Key塞进GitHub Pages静态产物。
+- 复用另一个产品的部署架构，不等于复用它的Supabase项目。为省一次建项目而沿用旧Project Ref会混合数据库、函数、Secrets、日志和额度，部署前必须先创建本产品自己的Supabase项目。
+- Supabase东京Edge运行环境连接高德MCP可能超时，但同一个Web服务Key调用高德v5周边搜索正常。线上函数必须保留MCP首选和Web服务兜底两条路径，并继续复用同一套筛选排序规则；不能因MCP超时直接向用户返回502。
+- 将网页封装为APK、直接发送安装包或不上应用商店，都不能自动免除APP备案。若面向中国大陆公众提供高德餐厅查询、云端推荐等联网信息服务，应先按工信部现行APP备案规则评估；只有完全离线、本机自用、内部测试或只面向境外等不构成境内APP互联网信息服务的场景，才可能不在该备案范围内。
 
 ## 产品范围护栏
 

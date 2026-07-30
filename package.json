@@ -1,9 +1,11 @@
 {
-  "name": "diet-helper",
+  "name": "meal-compass",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node scripts/build-sites.js",
+    "build:pages": "node scripts/build-pages.js",
     "check:amap": "node scripts/check-amap.js",
     "dev": "node --watch server.js",
     "start": "node server.js",
@@ -18,5 +20,8 @@
   },
   "overrides": {
     "@hono/node-server": "2.0.11"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
   }
 }

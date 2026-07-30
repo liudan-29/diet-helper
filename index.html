@@ -4,7 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1f3229" />
-    <title>吃点好的 · 饮食小助手</title>
+    <title>Meal Compass · 饮食小助手</title>
+    <meta name="application-name" content="Meal Compass · 饮食小助手" />
+    <meta name="description" content="Meal Compass 饮食小助手，帮你决定去哪吃、自己做并记录每一餐。" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,108 +16,362 @@
   <body>
     <main class="app-shell">
       <header class="topbar">
-        <a class="brand" href="#top" aria-label="吃点好的首页">
-          <span class="brand-mark">食</span>
-          <span>吃点好的</span>
+        <a class="brand" href="#mainContent" aria-label="吃点好的">
+          <span class="brand-mark" aria-hidden="true">食</span>
+          <span id="moduleTitle" tabindex="-1">去哪吃</span>
         </a>
         <button class="location-button" id="locationButton" type="button">
-          <span class="location-dot"></span><span id="locationText">定位到附近</span>
+          <span class="location-dot" aria-hidden="true"></span>
+          <span id="locationText">定位到附近</span>
         </button>
       </header>
 
-      <section class="location-panel" id="locationPanel" hidden>
-        <div>
-          <p class="eyebrow">手动选择地点</p>
-          <p>定位不可用时，先输入测试地点名称。接入地点搜索后会自动转换成真实坐标。</p>
-        </div>
-        <label>
-          <span>地点</span>
-          <input id="manualLocationInput" type="text" maxlength="80" placeholder="例如：北京国贸" />
-        </label>
-        <button id="manualLocationButton" type="button">使用这个地点</button>
-      </section>
+      <div id="storageWarning" class="status-banner warning" role="alert" hidden>
+        本地数据读取失败，已保留原始备份并恢复空状态。
+      </div>
 
-      <section class="hero" id="top">
-        <p class="eyebrow">今天这一餐，别将就。</p>
-        <h1>你现在<br /><em>想吃点什么？</em></h1>
-        <p class="hero-note">把选择交给偏好和附近真实的餐厅，而不是随便凑合。</p>
-      </section>
+      <div id="mainContent">
+        <section class="app-module active" id="module-eat" data-module="eat" aria-labelledby="eatHeading">
+          <section class="location-panel" id="locationPanel" hidden>
+            <div>
+              <p class="eyebrow">手动选择地点</p>
+              <p>输入地点后由本站服务端解析坐标；未配置高德时会明确使用演示坐标。</p>
+            </div>
+            <label>
+              <span>地点</span>
+              <input id="manualLocationInput" type="text" maxlength="80" placeholder="例如：北京国贸" />
+            </label>
+            <button id="manualLocationButton" type="button">解析并使用这个地点</button>
+          </section>
 
-      <section class="picker" aria-label="用餐偏好">
-        <div class="picker-row">
-          <span class="picker-label">这一餐</span>
-          <div class="chip-group" data-group="meal">
-            <button class="chip" data-value="早餐" type="button">早餐</button>
-            <button class="chip active" data-value="午餐" type="button">午餐</button>
-            <button class="chip" data-value="晚餐" type="button">晚餐</button>
-            <button class="chip" data-value="夜宵" type="button">夜宵</button>
-          </div>
-        </div>
-        <div class="picker-row">
-          <span class="picker-label">什么场合</span>
-          <div class="chip-group" data-group="scene">
-            <button class="chip active" data-value="日常" type="button">日常</button>
-            <button class="chip" data-value="请客" type="button">请客</button>
-            <button class="chip" data-value="一个人" type="button">一个人</button>
-            <button class="chip" data-value="想吃清淡" type="button">想吃清淡</button>
-          </div>
-        </div>
-        <div class="picker-row budget-row">
-          <span class="picker-label">人均预算</span>
-          <input id="budgetRange" type="range" min="30" max="220" value="80" step="10" aria-label="人均预算" />
-          <output id="budgetOutput" for="budgetRange">¥80</output>
-        </div>
-        <button class="recommend-button" id="recommendButton" type="button">给我挑一家 <span>↗</span></button>
-        <p class="form-message" id="formMessage" role="status"></p>
-      </section>
+          <section class="hero" id="eatHeading">
+            <p class="eyebrow">今天这一餐，别将就。</p>
+            <h1>你现在<br /><em>想吃点什么？</em></h1>
+            <p class="hero-note">把选择交给偏好和附近真实的餐厅，而不是随便凑合。</p>
+          </section>
 
-      <section class="result-section" id="resultSection" aria-live="polite">
-        <div class="result-heading">
-          <div>
-            <p class="eyebrow">今日推荐</p>
-            <h2 id="resultTitle">附近适合午餐的店</h2>
-          </div>
-          <span class="result-count" id="resultCount">01 / 04</span>
-        </div>
+          <div class="quick-places" id="quickPlaces" aria-label="常用地点"></div>
 
-        <article class="restaurant-card" id="restaurantCard">
-          <div class="card-visual" id="cardVisual">
-            <img
-              class="restaurant-photo"
-              id="restaurantPhoto"
-              alt=""
-              decoding="async"
-            >
-            <span class="photo-shade" aria-hidden="true"></span>
-            <span class="dish-stamp" id="dishStamp">川</span>
-            <p class="card-kicker" id="cardKicker">锅气很足</p>
-            <div class="visual-lines"><i></i><i></i><i></i></div>
-          </div>
-          <div class="card-body">
-            <div class="card-title-line">
-              <div>
-                <h3 id="restaurantName">胡记锅贴</h3>
-                <p id="restaurantMeta">锅贴 · 420m · 人均 ¥36</p>
+          <section class="picker" aria-label="用餐偏好">
+            <div class="picker-row">
+              <span class="picker-label">这一餐</span>
+              <div class="chip-group" id="mealChips" data-group="meal">
+                <button class="chip" data-value="早餐" type="button">早餐</button>
+                <button class="chip" data-value="午餐" type="button">午餐</button>
+                <button class="chip" data-value="晚餐" type="button">晚餐</button>
+                <button class="chip" data-value="夜宵" type="button">夜宵</button>
               </div>
-              <span class="rating" id="restaurantRating">4.8</span>
             </div>
-            <p class="reason" id="restaurantReason">离你近，正在营业；午餐吃得扎实，又不会花太多时间。</p>
-            <div class="tag-list" id="tagList"></div>
-            <div class="card-actions">
-              <button class="secondary-button" id="previousButton" type="button">上一家</button>
-              <button class="secondary-button" id="nextButton" type="button">换一家</button>
-              <button class="primary-button" id="navigateButton" type="button">去这里 <span>→</span></button>
+            <div class="picker-row">
+              <span class="picker-label">什么场合</span>
+              <div class="picker-control">
+                <div class="chip-group" id="occasionChips" data-group="occasion">
+                  <button class="chip active" data-value="日常" type="button">日常</button>
+                  <button class="chip" data-value="请客" type="button">请客</button>
+                  <button class="chip" data-value="约会" type="button">约会</button>
+                  <button class="chip" data-value="聚餐" type="button">聚餐</button>
+                  <button class="chip" data-value="其他" type="button">其他</button>
+                </div>
+                <label class="custom-field" id="customOccasionField" hidden>
+                  <span class="sr-only">自定义用餐场合</span>
+                  <input id="customOccasionInput" type="text" maxlength="20" placeholder="例如：看球、赶时间" />
+                </label>
+              </div>
             </div>
-          </div>
-        </article>
-        <p class="data-note" id="dataNote">现在是演示数据。接入高德 MCP 后，这里会显示附近真实餐厅。</p>
-      </section>
+            <div class="picker-row">
+              <label class="picker-label" for="partySizeInput">同行人数</label>
+              <label class="number-field">
+                <input id="partySizeInput" type="number" min="1" max="50" step="1" inputmode="numeric" />
+                <span>人，含自己</span>
+              </label>
+            </div>
+            <div class="picker-row">
+              <span class="picker-label">口味偏好</span>
+              <div class="chip-group" id="eatTasteChips" data-multi="true">
+                <button class="chip" data-value="清淡" type="button">清淡</button>
+                <button class="chip" data-value="辣" type="button">辣</button>
+                <button class="chip" data-value="少油" type="button">少油</button>
+                <button class="chip" data-value="素食" type="button">素食</button>
+              </div>
+            </div>
+            <div class="picker-row requirement-row">
+              <label class="picker-label" for="customRequirementInput">其他要求</label>
+              <div>
+                <input class="text-field" id="customRequirementInput" type="text" maxlength="80" placeholder="例如：想吃面、不吃火锅" />
+                <p class="field-help">餐厅类型会参与筛选；菜品忌口、过敏或医疗要求仍需向餐厅确认。</p>
+              </div>
+            </div>
+            <div class="picker-row budget-row">
+              <label class="picker-label" for="budgetInput">人均预算</label>
+              <label class="number-field budget-field">
+                <input id="budgetInput" type="number" min="0" max="10000" step="1" inputmode="decimal" />
+                <span>元/人</span>
+              </label>
+            </div>
+            <button class="recommend-button" id="recommendButton" type="button">给我挑一家 <span>↗</span></button>
+            <p class="form-message" id="formMessage" role="status"></p>
+          </section>
 
-      <footer class="roadmap-note">
-        <span>第一阶段</span>
-        <p>先把“去哪吃”做完整。自己做、记一笔和我的已经保留在产品路线图中。</p>
-      </footer>
+          <section class="result-section" id="resultSection" aria-live="polite" hidden>
+            <div class="result-heading">
+              <div>
+                <p class="eyebrow">今日推荐</p>
+                <h2 id="resultTitle">附近适合吃饭的店</h2>
+              </div>
+              <span class="result-count" id="resultCount">00 / 00</span>
+            </div>
+            <article class="restaurant-card" id="restaurantCard">
+              <div class="card-visual" id="cardVisual">
+                <img class="restaurant-photo" id="restaurantPhoto" alt="" decoding="async" />
+                <span class="photo-shade" aria-hidden="true"></span>
+                <span class="photo-source" id="photoSource" hidden></span>
+                <span class="photo-loading-label" id="photoLoadingLabel">实景照片加载中</span>
+                <span class="dish-stamp" id="dishStamp" aria-hidden="true">食</span>
+                <p class="card-kicker" id="cardKicker">附近可选</p>
+                <button class="photo-nav photo-nav-previous" id="photoPreviousButton" type="button" aria-label="查看上一张餐厅照片">←</button>
+                <button class="photo-nav photo-nav-next" id="photoNextButton" type="button" aria-label="查看下一张餐厅照片">→</button>
+                <div class="photo-pagination" id="photoPagination" aria-label="餐厅照片分页"></div>
+              </div>
+              <div class="card-body">
+                <div class="card-title-line">
+                  <div>
+                    <h3 id="restaurantName"></h3>
+                    <p id="restaurantMeta"></p>
+                  </div>
+                  <div class="card-title-actions">
+                    <span class="rating" id="restaurantRating"></span>
+                    <button class="icon-button favorite-button" id="restaurantFavoriteButton" type="button" aria-label="收藏餐厅">☆</button>
+                  </div>
+                </div>
+                <p class="reason" id="restaurantReason"></p>
+                <button class="text-action light" id="restaurantDetailButton" type="button">查看详情</button>
+                <div class="tag-list" id="tagList"></div>
+                <div class="card-actions">
+                  <button class="secondary-button" id="previousButton" type="button">上一家</button>
+                  <button class="secondary-button" id="nextButton" type="button">换一家</button>
+                  <button class="primary-button" id="navigateButton" type="button">去这里 <span>→</span></button>
+                </div>
+              </div>
+            </article>
+            <div class="quiet-actions">
+              <button id="feedbackButton" type="button">不合适</button>
+              <button id="restaurantRecordButton" type="button">记一笔</button>
+            </div>
+            <p class="data-note" id="dataNote"></p>
+          </section>
+        </section>
+
+        <section class="app-module" id="module-cook" data-module="cook" aria-labelledby="cookHeading" hidden>
+          <section class="module-intro">
+            <p class="eyebrow">按手边的食材来</p>
+            <h1 id="cookHeading" tabindex="-1">自己做</h1>
+            <p class="hero-note">本地规则匹配，不需要模型Key，不提供医疗建议或精确营养计算。</p>
+          </section>
+          <form class="picker form-stack" id="cookingForm" novalidate>
+            <label class="field-block">
+              <span>已有食材 <b>必填</b></span>
+              <textarea id="cookingIngredients" rows="4" maxlength="300" placeholder="用逗号或换行分隔，例如：番茄，鸡蛋"></textarea>
+              <small>至少1项食材</small>
+            </label>
+            <div class="two-fields">
+              <label class="field-block">
+                <span>可用时间</span>
+                <input id="cookingMinutes" type="number" min="5" max="240" value="30" inputmode="numeric" />
+                <small>5至240分钟</small>
+              </label>
+              <label class="field-block">
+                <span>用餐人数</span>
+                <input id="cookingPartySize" type="number" min="1" max="20" inputmode="numeric" />
+                <small>1至20人</small>
+              </label>
+            </div>
+            <div class="quick-time chip-group" id="quickTimeChips" aria-label="快捷时间">
+              <button class="chip" type="button" data-value="15">15分钟</button>
+              <button class="chip" type="button" data-value="30">30分钟</button>
+              <button class="chip" type="button" data-value="45">45分钟</button>
+              <button class="chip" type="button" data-value="60">60分钟</button>
+            </div>
+            <fieldset>
+              <legend>可用厨具，不选表示不限</legend>
+              <div class="chip-group" id="cookingToolChips"></div>
+            </fieldset>
+            <fieldset>
+              <legend>口味偏好</legend>
+              <div class="chip-group" id="cookingTasteChips"></div>
+            </fieldset>
+            <label class="field-block">
+              <span>补充要求</span>
+              <textarea id="cookingRequirement" rows="3" maxlength="200"></textarea>
+              <small>最多200字；仍需自行确认忌口与过敏风险。</small>
+            </label>
+            <button class="recommend-button" id="generatePlanButton" type="submit">生成方案 <span>↗</span></button>
+            <p class="form-message" id="cookingMessage" role="status"></p>
+          </form>
+          <section id="cookingResult" class="cooking-result empty-state" aria-live="polite">
+            <span class="empty-stamp" aria-hidden="true">做</span>
+            <h2>先写下手边的食材</h2>
+            <p>食材、时间和人数填完整后，会在本地规则库中匹配做法。</p>
+          </section>
+        </section>
+
+        <section class="app-module" id="module-records" data-module="records" aria-labelledby="recordsHeading" hidden>
+          <section id="recordListView">
+            <div class="module-heading">
+              <div>
+                <p class="eyebrow">吃过的，都算数</p>
+                <h1 id="recordsHeading" tabindex="-1">记一笔</h1>
+                <p id="recordCountText">0条记录</p>
+              </div>
+              <button class="primary-compact" id="newRecordButton" type="button">新建</button>
+            </div>
+            <div class="chip-group filter-chips" id="recordFilterChips">
+              <button class="chip active" data-value="all" type="button">全部</button>
+              <button class="chip" data-value="restaurant" type="button">外出就餐</button>
+              <button class="chip" data-value="cooking" type="button">自己做</button>
+              <button class="chip" data-value="takeout" type="button">外卖</button>
+              <button class="chip" data-value="other" type="button">其他</button>
+            </div>
+            <label class="date-filter">
+              <span>日期</span>
+              <input id="recordDateFilter" type="date" />
+              <button id="clearRecordFilters" type="button">清除筛选</button>
+            </label>
+            <div id="recordList" class="record-list"></div>
+          </section>
+
+          <section id="recordEditorView" class="subpage" hidden>
+            <button class="back-button" id="recordEditorBack" type="button">← 返回记录</button>
+            <p class="eyebrow" id="recordSourceHint"></p>
+            <h1 id="recordEditorHeading" tabindex="-1">新建记录</h1>
+            <form class="picker form-stack" id="recordForm" novalidate>
+              <input id="recordId" type="hidden" />
+              <input id="recordSourceId" type="hidden" />
+              <div class="two-fields">
+                <label class="field-block"><span>用餐日期</span><input id="recordDate" type="date" required /></label>
+                <label class="field-block"><span>餐次</span>
+                  <select id="recordMealPeriod"><option>早餐</option><option>午餐</option><option>晚餐</option><option>夜宵</option></select>
+                </label>
+              </div>
+              <label class="field-block"><span>用餐方式</span>
+                <select id="recordSourceType"><option value="restaurant">外出就餐</option><option value="cooking">自己做</option><option value="takeout">外卖</option><option value="other">其他</option></select>
+              </label>
+              <label class="field-block"><span>餐厅或菜名 <b>必填</b></span><input id="recordTitle" type="text" maxlength="100" required /></label>
+              <label class="field-block"><span>吃了什么</span><textarea id="recordFoods" rows="3" maxlength="500"></textarea></label>
+              <div class="two-fields">
+                <label class="field-block"><span>花费</span><input id="recordCost" type="number" min="0" max="100000" inputmode="decimal" /><small>0至100000元，可不填</small></label>
+                <label class="field-block"><span>同行人数</span><input id="recordPartySize" type="number" min="1" max="50" inputmode="numeric" /><small>1至50人</small></label>
+              </div>
+              <fieldset><legend>感受</legend>
+                <div class="chip-group" id="recordFeelingChips">
+                  <button class="chip active" data-value="great" type="button">很满意</button>
+                  <button class="chip" data-value="okay" type="button">还可以</button>
+                  <button class="chip" data-value="bad" type="button">不太好</button>
+                </div>
+              </fieldset>
+              <label class="field-block"><span>备注</span><textarea id="recordNote" rows="4" maxlength="1000"></textarea></label>
+              <div class="photo-uploader">
+                <label class="secondary-action file-button" for="recordPhoto">选择一张照片</label>
+                <input id="recordPhoto" type="file" accept="image/*" />
+                <div id="recordPhotoPreview" hidden>
+                  <img alt="待保存的饮食记录照片预览" />
+                  <button id="removeRecordPhoto" type="button">移除照片</button>
+                </div>
+                <p id="recordPhotoMessage" class="field-help"></p>
+              </div>
+              <button class="recommend-button" id="saveRecordButton" type="submit">保存记录 <span>↗</span></button>
+              <p class="form-message" id="recordFormMessage" role="status"></p>
+            </form>
+          </section>
+
+          <section id="recordDetailView" class="subpage" hidden>
+            <button class="back-button" id="recordDetailBack" type="button">← 返回记录</button>
+            <div id="recordDetail"></div>
+          </section>
+        </section>
+
+        <section class="app-module" id="module-mine" data-module="mine" aria-labelledby="mineHeading" hidden>
+          <section class="module-intro">
+            <p class="eyebrow">只属于这个浏览器</p>
+            <h1 id="mineHeading" tabindex="-1">我的</h1>
+            <p class="hero-note">资料保存在当前浏览器，不会自动跨设备同步。</p>
+          </section>
+
+          <section class="mine-section">
+            <div class="section-heading"><div><p class="eyebrow">个人偏好</p><h2>新表单的默认值</h2></div></div>
+            <form class="form-stack" id="profileForm" novalidate>
+              <div class="two-fields">
+                <label class="field-block"><span>默认人均预算</span><input id="profileBudget" type="number" min="0" max="10000" /></label>
+                <label class="field-block"><span>默认同行人数</span><input id="profilePartySize" type="number" min="1" max="20" /></label>
+              </div>
+              <fieldset><legend>口味偏好</legend><div class="chip-group" id="profileTasteChips"></div></fieldset>
+              <label class="field-block"><span>忌口与过敏提示</span><input id="profileRestrictions" type="text" maxlength="200" placeholder="用逗号分隔" /><small>仅作提示，点餐和烹饪时仍需自行确认。</small></label>
+              <button class="primary-compact" id="saveProfileButton" type="submit">保存偏好</button>
+              <p class="form-message" id="profileMessage" role="status"></p>
+            </form>
+          </section>
+
+          <section class="mine-section">
+            <div class="section-heading"><div><p class="eyebrow">常用地点</p><h2>家、公司和常去的地方</h2></div><button class="text-action" id="addPlaceButton" type="button">添加地点</button></div>
+            <div id="commonPlaceList"></div>
+          </section>
+
+          <section class="mine-section">
+            <p class="eyebrow">收藏</p>
+            <h2>想再去、想再做</h2>
+            <div class="chip-group filter-chips" id="favoriteTabs">
+              <button class="chip active" data-value="restaurant" type="button">餐厅</button>
+              <button class="chip" data-value="cookingPlan" type="button">做饭方案</button>
+            </div>
+            <div id="favoriteList"></div>
+          </section>
+
+          <section class="mine-section">
+            <p class="eyebrow">本地历史</p>
+            <h2>最近5条选择</h2>
+            <div id="historyList"></div>
+          </section>
+
+          <section class="mine-section local-data">
+            <p class="eyebrow">本地数据</p>
+            <h2>当前浏览器里的内容</h2>
+            <ul class="plain-list">
+              <li>数据保存在当前浏览器</li>
+              <li>不会自动跨设备同步</li>
+              <li id="dataCounts"></li>
+            </ul>
+            <div class="danger-zone">
+              <h3>清除全部本地数据</h3>
+              <p>资料、地点、收藏、方案、记录、事件和照片都会永久删除。</p>
+              <button class="danger-button" id="clearDataButton" type="button">× 清除全部数据</button>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <nav class="bottom-nav" aria-label="主要功能">
+        <button class="active" data-module-target="eat" type="button" aria-current="page"><span aria-hidden="true">餐</span>去哪吃</button>
+        <button data-module-target="cook" type="button"><span aria-hidden="true">做</span>自己做</button>
+        <button data-module-target="records" type="button"><span aria-hidden="true">记</span>记一笔</button>
+        <button data-module-target="mine" type="button"><span aria-hidden="true">我</span>我的</button>
+      </nav>
     </main>
-    <script src="app.js"></script>
+
+    <div class="modal-root" id="modalRoot" hidden>
+      <div class="modal-backdrop" aria-hidden="true"></div>
+      <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <header><h2 id="modalTitle"></h2><button class="icon-button" id="modalClose" type="button" aria-label="关闭">×</button></header>
+        <div id="modalBody" class="modal-body"></div>
+        <footer id="modalActions"></footer>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status" tabindex="-1" hidden>
+      <span id="toastText"></span>
+      <strong id="toastCountdown"></strong>
+      <button id="toastAction" type="button" hidden></button>
+    </div>
+
+    <script src="config.js"></script>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

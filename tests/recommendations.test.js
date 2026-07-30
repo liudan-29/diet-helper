@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  businessHoursOverlapMeal,
+  buildSearchKeywords,
   createMockRestaurants,
   normalizePoi,
   rankRestaurants,
@@ -13,7 +15,10 @@ const request = {
   longitude: 116.39747,
   locationLabel: "测试位置",
   mealPeriod: "午餐",
-  scene: "日常",
+  occasion: "日常",
+  partySize: 1,
+  tastePreferences: [],
+  customRequirement: "",
   budget: 80,
   radius: 1000,
 };
@@ -27,6 +32,17 @@ test("用餐需求会被标准化", () => {
   assert.equal(result.latitude, request.latitude);
   assert.equal(result.budget, 80);
   assert.equal(result.radius, 1000);
+  assert.equal(result.partySize, 1);
+  assert.deepEqual(result.tastePreferences, []);
+});
+
+test("人均预算可以从零元开始", () => {
+  const result = validateMealRequest({ ...request, budget: 0 });
+  assert.equal(result.budget, 0);
+  assert.throws(
+    () => validateMealRequest({ ...request, budget: -1 }),
+    /预算无效/
+  );
 });
 
 test("无效坐标会被拒绝", () => {
@@ -40,11 +56,38 @@ test("午餐会排除早餐专营店和已打烊餐厅", () => {
   const restaurants = [
     restaurant({ id: "breakfast", name: "老张油条铺", category: "餐饮;早餐" }),
     restaurant({ id: "closed", name: "今晚食堂", businessStatus: "closed" }),
-    restaurant({ id: "lunch", name: "青禾小馆" }),
+    restaurant({ id: "lunch", name: "青禾小馆", businessHours: "11:00-22:00" }),
   ];
 
   const result = rankRestaurants(restaurants, request);
   assert.deepEqual(result.map((item) => item.id), ["lunch"]);
+});
+
+test("餐厅必须覆盖所选餐次，不能按当前是否营业代替", () => {
+  const restaurants = [
+    restaurant({
+      id: "morning-only",
+      name: "晨光食堂",
+      businessHours: "06:00-10:30",
+    }),
+    restaurant({
+      id: "opens-at-lunch",
+      name: "午后小馆",
+      businessStatus: "closed",
+      businessHours: "11:00-22:00",
+    }),
+  ];
+
+  const result = rankRestaurants(restaurants, request);
+  assert.deepEqual(result.map((item) => item.id), ["opens-at-lunch"]);
+  assert.equal(businessHoursOverlapMeal("06:00-10:30", "午餐"), false);
+  assert.equal(businessHoursOverlapMeal("11:00-22:00", "午餐"), true);
+  assert.equal(businessHoursOverlapMeal("", "午餐"), null);
+});
+
+test("跨午夜营业时间可以覆盖夜宵", () => {
+  assert.equal(businessHoursOverlapMeal("18:00-02:00", "夜宵"), true);
+  assert.equal(businessHoursOverlapMeal("06:00-18:00", "夜宵"), false);
 });
 
 test("请客场景会排除快餐并优先高评分餐厅", () => {
@@ -54,8 +97,43 @@ test("请客场景会排除快餐并优先高评分餐厅", () => {
     restaurant({ id: "normal", name: "街角餐厅", rating: 4.2, distance: 600 }),
   ];
 
-  const result = rankRestaurants(restaurants, { ...request, scene: "请客" });
+  const result = rankRestaurants(restaurants, { ...request, occasion: "请客" });
   assert.deepEqual(result.map((item) => item.id), ["good", "normal"]);
+});
+
+test("自定义场合、人数和口味偏好会被校验并保留", () => {
+  const result = validateMealRequest({
+    ...request,
+    occasion: "其他",
+    customOccasion: "看球",
+    partySize: "4",
+    tastePreferences: ["辣", "少油"],
+    customRequirement: "不吃香菜",
+  });
+
+  assert.equal(result.occasion, "看球");
+  assert.equal(result.occasionPreset, "其他");
+  assert.equal(result.partySize, 4);
+  assert.deepEqual(result.tastePreferences, ["辣", "少油"]);
+  assert.equal(result.customRequirement, "不吃香菜");
+  assert.match(buildSearchKeywords(result), /看球/);
+});
+
+test("可识别的自定义餐厅偏好会参与搜索和排除", () => {
+  const customRequest = {
+    ...request,
+    customRequirement: "想吃面，不吃火锅",
+  };
+  const restaurants = [
+    restaurant({ id: "noodle", name: "老街面馆", category: "餐饮;面馆" }),
+    restaurant({ id: "hotpot", name: "山城火锅", category: "餐饮;火锅" }),
+  ];
+
+  assert.match(buildSearchKeywords(customRequest), /面馆/);
+  assert.deepEqual(
+    rankRestaurants(restaurants, customRequest).map((item) => item.id),
+    ["noodle"]
+  );
 });
 
 test("没有高德Key时仍能生成可导航的演示推荐", () => {
@@ -99,6 +177,7 @@ function restaurant(overrides = {}) {
     rating: 4.5,
     averageCost: 60,
     businessStatus: "open",
+    businessHours: "",
     navigationUrl: "https://example.com",
     ...overrides,
   };
